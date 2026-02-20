@@ -1,3 +1,73 @@
 #HelloWorld
 
 https://cp.bluesnap.com/jsp/invoice.jsp?ref=BB7503802FFEC5861E825D88954C3CA0&eid=D14F8C21B7582AA2E9E3C0D38CD30B75C53C05C2CAF343707B4B394118FAA3AA217A7111243F5C010F3A4B0366DCB0A95C94049A5C5BCA4B10F5920618DF6F2392C5B2017273693A
+
+# Managers with mixed DRs not in Monitored
+$LogMessages += -join($Q, '-> PH Direct Reports (Employee/NON-EMP) of Managers with mixed DRs not in SG_SSO_wAnywhere_Monitored group')
+$MissingMonitoredMixedManagerCount = 0
+$AllManagers = $WorkdayData | Where-Object {$_.isManager -eq '1' -and $_.Worker_Type -eq 'Employee'} | Select-Object -Unique User_Name, location, Worker
+
+# Build ALL NON-EMP direct reports lookup (not just PH)
+$AllNonEmpDirectReportsByManager = @{}
+foreach ($nonEmp in $AllNonEmpUsers) {
+    if ($nonEmp.Manager) {
+        $managerObj = $ManagerCache[$nonEmp.Manager]
+        if ($managerObj) {
+            $mgrSam = $managerObj.SamAccountName
+            if (-not $AllNonEmpDirectReportsByManager.ContainsKey($mgrSam)) {
+                $AllNonEmpDirectReportsByManager[$mgrSam] = @()
+            }
+            $AllNonEmpDirectReportsByManager[$mgrSam] += $nonEmp
+        }
+    }
+}
+
+foreach ($Manager in $AllManagers) {
+    $AllDirectReportsEmp = @()
+    if ($DirectReportsByManager.ContainsKey($Manager.Worker)) {
+        $AllDirectReportsEmp = $DirectReportsByManager[$Manager.Worker]
+    }
+
+    $AllDirectReportsNonEmp = @()
+    if ($AllNonEmpDirectReportsByManager.ContainsKey($Manager.User_Name)) {
+        $AllDirectReportsNonEmp = $AllNonEmpDirectReportsByManager[$Manager.User_Name]
+    }
+
+    if ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0) {
+        $empLocationGroups   = $AllDirectReportsEmp   | Group-Object location
+        $nonEmpLocationGroups = $AllDirectReportsNonEmp | Group-Object { if ($_.Country) { $_.Country } else { 'Unknown' } }
+
+        $hasPHReports    = ($empLocationGroups    | Where-Object { $_.Name -eq 'PH Manila' }).Count -gt 0 -or
+                           ($nonEmpLocationGroups  | Where-Object { $_.Name -eq 'PH' -or $_.Name -eq 'Philippines' }).Count -gt 0
+        $hasNonPHReports = ($empLocationGroups    | Where-Object { $_.Name -ne 'PH Manila' }).Count -gt 0 -or
+                           ($nonEmpLocationGroups  | Where-Object { $_.Name -ne 'PH' -and $_.Name -ne 'Philippines' }).Count -gt 0
+
+        if ($hasPHReports -and $hasNonPHReports) {
+            # Check PH Employee DRs of this manager
+            $PHEmpDRs = $AllDirectReportsEmp | Where-Object { $_.location -eq 'PH Manila' }
+            foreach ($phEmpDR in $PHEmpDRs) {
+                if (-not $wAnywhereMonitoredNames.ContainsKey($phEmpDR.User_Name)) {
+                    $DiscrepancyLine = 'PH Employee DR of Manager with mixed DRs not in Monitored group,' + $phEmpDR.isManager + ',' + $phEmpDR.User_Name + ',' + $phEmpDR.primaryWorkEmail + ',' + $phEmpDR.location + ',' + $Manager.User_Name
+                    $Discrepancies += $DiscrepancyLine
+                    $MissingMonitoredMixedManagerCount++
+                    $LogMessages += -join($Q, $Q, '-> Id: ', $phEmpDR.User_Name, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
+                }
+            }
+
+            # Check PH NON-EMP DRs of this manager
+            $PHNonEmpDRs = $AllDirectReportsNonEmp | Where-Object { $_.Country -eq 'PH' -or $_.Country -eq 'Philippines' }
+            foreach ($phNonEmpDR in $PHNonEmpDRs) {
+                if (-not $wAnywhereMonitoredNames.ContainsKey($phNonEmpDR.SamAccountName)) {
+                    $DiscrepancyLine = 'PH NON-EMP DR of Manager with mixed DRs not in Monitored group,0,' + $phNonEmpDR.SamAccountName + ',,PH,' + $Manager.User_Name
+                    $Discrepancies += $DiscrepancyLine
+                    $MissingMonitoredMixedManagerCount++
+                    $LogMessages += -join($Q, $Q, '-> Id: ', $phNonEmpDR.SamAccountName, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
+                }
+            }
+        }
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $MissingMonitoredMixedManagerCount)
+$LogMessages += '-------------------------------------------------------------------------------'
+$LogMessages += ""
