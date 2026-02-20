@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAM Performance Dashboard · Q1 2025</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --bg:        #f0f2f7;
+  --surface:   #ffffff;
+  --surface2:  #f8f9fc;
+  --border:    #e4e8f0;
+  --border2:   #d0d7e6;
+
+  --navy:      #0b1f45;
+  --navy2:     #152d5e;
+  --navy3:     #1e3a74;
+  --blue:      #1e56c8;
+  --blue-lt:   #e8effe;
+  --sky:       #0ea5e9;
+  --teal:      #0891b2;
+  --teal-lt:   #e0f7fb;
+  --green:     #16a34a;
+  --green-lt:  #dcfce7;
+  --amber:     #b45309;
+  --amber-lt:  #fef3c7;
+  --red:       #dc2626;
+  --red-lt:    #fee2e2;
+  --purple:    #7c3aed;
+  --purple-lt: #ede9fe;
+
+  --text:      #111827;
+  --text2:     #374151;
+  --text3:     #6b7280;
+  --muted:     #9ca3af;
+
+  --sh1: 0 1px 4px rgba(11,31,69,.06),0 0 0 1px rgba(11,31,69,.04);
+  --sh2: 0 4px 20px rgba(11,31,69,.08),0 1px 4px rgba(11,31,69,.04);
+  --sh3: 0 12px 40px rgba(11,31,69,.12),0 2px 8px rgba(11,31,69,.06);
+
+  --rad: 12px;
+  --rad-sm: 8px;
+  --rad-xs: 5px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+  min-height:100vh;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+.hdr{
+  background:linear-gradient(130deg,var(--navy) 0%,var(--navy2) 55%,var(--navy3) 100%);
+  position:sticky;top:0;z-index:300;
+}
+.hdr-bar{
+  display:flex;align-items:center;
+  padding:0 44px;height:62px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.hdr-brand{display:flex;align-items:center;gap:11px}
+.hdr-gem{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--sky),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;color:#fff;letter-spacing:-.5px;
+  box-shadow:0 2px 12px rgba(14,165,233,.45);
+}
+.hdr-name{
+  font-size:1.02rem;font-weight:600;color:#fff;letter-spacing:.2px;
+}
+.hdr-name span{color:var(--sky)}
+.hdr-sep{width:1px;height:26px;background:rgba(255,255,255,.12);margin:0 24px}
+.hdr-subtitle{
+  font-size:.72rem;font-weight:500;letter-spacing:1.8px;
+  text-transform:uppercase;color:rgba(255,255,255,.45);
+}
+.hdr-right{
+  margin-left:auto;display:flex;align-items:center;gap:20px;
+}
+.hdr-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  padding:4px 12px;border-radius:20px;
+  font-size:.7rem;font-weight:500;letter-spacing:.8px;text-transform:uppercase;
+  color:rgba(255,255,255,.55);
+}
+.pulse{
+  width:7px;height:7px;border-radius:50%;
+  background:#4ade80;box-shadow:0 0 8px #4ade80;
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+.hdr-date{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;color:rgba(255,255,255,.35);
+}
+
+/* NAV */
+.hdr-nav{
+  display:flex;padding:0 44px;gap:2px;
+  background:rgba(0,0,0,.15);
+}
+.nav-tab{
+  padding:9px 16px;font-size:.7rem;font-weight:500;
+  letter-spacing:1px;text-transform:uppercase;
+  color:rgba(255,255,255,.38);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .18s;white-space:nowrap;
+}
+.nav-tab:hover{color:rgba(255,255,255,.7)}
+.nav-tab.active{color:var(--sky);border-bottom-color:var(--sky)}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.main{padding:30px 44px 64px;max-width:1560px;margin:0 auto}
+
+.section{
+  margin-bottom:32px;
+  opacity:0;transform:translateY(18px);
+  animation:rise .42s ease forwards;
+}
+.section:nth-child(1){animation-delay:.06s}
+.section:nth-child(2){animation-delay:.12s}
+.section:nth-child(3){animation-delay:.18s}
+.section:nth-child(4){animation-delay:.24s}
+.section:nth-child(5){animation-delay:.30s}
+.section:nth-child(6){animation-delay:.36s}
+@keyframes rise{to{opacity:1;transform:none}}
+
+.sec-hdr{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:14px;
+}
+.sec-badge{
+  font-size:.62rem;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--blue);background:var(--blue-lt);
+  padding:3px 9px;border-radius:4px;
+  border:1px solid rgba(30,86,200,.15);
+  white-space:nowrap;
+}
+.sec-title{
+  font-size:1.1rem;font-weight:700;color:var(--navy);
+  letter-spacing:-.3px;
+}
+.sec-hint{
+  margin-left:auto;display:flex;align-items:center;gap:5px;
+  font-size:.68rem;color:var(--blue);
+  background:var(--blue-lt);border:1px solid rgba(30,86,200,.15);
+  padding:3px 10px;border-radius:20px;
+  white-space:nowrap;
+}
+
+/* ═══════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════ */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--rad);
+  box-shadow:var(--sh2);
+  overflow:hidden;
+  transition:box-shadow .2s;
+}
+.card:hover{box-shadow:var(--sh3)}
+
+.card-hdr{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 22px 13px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+}
+.card-ico{
+  width:30px;height:30px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.ico-blue  {background:var(--blue-lt);color:var(--blue)}
+.ico-teal  {background:var(--teal-lt);color:var(--teal)}
+.ico-green {background:var(--green-lt);color:var(--green)}
+.ico-amber {background:var(--amber-lt);color:var(--amber)}
+.ico-red   {background:var(--red-lt);color:var(--red)}
+.ico-purple{background:var(--purple-lt);color:var(--purple)}
+
+.card-title{
+  font-size:.88rem;font-weight:600;color:var(--text);
+  letter-spacing:.1px;
+}
+.card-meta{
+  margin-left:auto;font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);
+}
+.card-meta strong{color:var(--navy);font-weight:600}
+
+.card-body{padding:22px}
+
+/* ═══════════════════════════════════════════
+   KPI TILES
+═══════════════════════════════════════════ */
+.kpi-row{display:grid;gap:12px;margin-bottom:16px}
+.kpi-row.c4{grid-template-columns:repeat(4,1fr)}
+.kpi-row.c3{grid-template-columns:repeat(3,1fr)}
+
+.kpi{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--rad-sm);
+  padding:16px 18px 14px;
+  box-shadow:var(--sh1);
+  position:relative;overflow:hidden;
+  transition:box-shadow .2s,transform .2s;
+}
+.kpi:hover{box-shadow:var(--sh2);transform:translateY(-1px)}
+.kpi::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:3px;
+  border-radius:var(--rad-sm) var(--rad-sm) 0 0;
+}
+.kpi:nth-child(1)::before{background:linear-gradient(90deg,var(--blue),var(--sky))}
+.kpi:nth-child(2)::before{background:linear-gradient(90deg,var(--teal),#67e8f9)}
+.kpi:nth-child(3)::before{background:linear-gradient(90deg,var(--amber),#fbbf24)}
+.kpi:nth-child(4)::before{background:linear-gradient(90deg,var(--purple),#c084fc)}
+
+.kpi-lbl{
+  font-size:.66rem;font-weight:600;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:8px;
+}
+.kpi-val{
+  font-size:1.85rem;font-weight:700;color:var(--navy);
+  line-height:1;margin-bottom:5px;
+  font-variant-numeric:tabular-nums;
+}
+.kpi-sub{font-size:.7rem;color:var(--text3)}
+
+/* ═══════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════ */
+.tbl{width:100%;border-collapse:collapse;font-size:.835rem}
+.tbl thead tr{background:var(--surface2)}
+.tbl th{
+  padding:9px 14px;text-align:left;
+  font-size:.67rem;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--text3);
+  border-bottom:1px solid var(--border2);
+  white-space:nowrap;
+}
+.tbl td{
+  padding:9px 14px;
+  border-bottom:1px solid var(--border);
+  color:var(--text2);vertical-align:middle;
+}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:rgba(30,86,200,.025);transition:background .12s}
+.tbl .t-name{font-weight:600;color:var(--text)}
+.tbl .t-mono{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.8rem;color:var(--text3);
+}
+
+/* ═══════════════════════════════════════════
+   EDITABLE INPUT
+═══════════════════════════════════════════ */
+.ei{
+  background:var(--surface2);
+  border:1.5px solid var(--border2);
+  color:var(--text);
+  padding:5px 10px;border-radius:6px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.8rem;font-weight:500;
+  transition:all .15s;
+  min-width:64px;width:100%;
+}
+.ei:hover{border-color:var(--blue);background:#fff}
+.ei:focus{
+  outline:none;border-color:var(--blue);background:#fff;
+  box-shadow:0 0 0 3px rgba(30,86,200,.1);
+}
+
+/* ═══════════════════════════════════════════
+   STATUS PILLS
+═══════════════════════════════════════════ */
+.pill{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:20px;
+  font-size:.68rem;font-weight:700;letter-spacing:.4px;
+  white-space:nowrap;
+}
+.p-green {background:var(--green-lt);color:var(--green)}
+.p-amber {background:var(--amber-lt);color:var(--amber)}
+.p-red   {background:var(--red-lt);color:var(--red)}
+.p-blue  {background:var(--blue-lt);color:var(--blue)}
+.p-slate {background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
+.p-teal  {background:var(--teal-lt);color:var(--teal)}
+.p-purple{background:var(--purple-lt);color:var(--purple)}
+
+/* ═══════════════════════════════════════════
+   CHART GRIDS
+═══════════════════════════════════════════ */
+.chart-grid{display:grid;gap:14px}
+.cg4{grid-template-columns:repeat(4,1fr)}
+.cg3{grid-template-columns:repeat(3,1fr)}
+.cg2{grid-template-columns:repeat(2,1fr)}
+
+.ch-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--rad-sm);
+  padding:14px 10px 10px;
+  box-shadow:var(--sh1);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  transition:box-shadow .2s,transform .2s;
+  cursor:pointer;
+}
+.ch-card:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
+
+.ch-label{
+  font-size:.67rem;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--text3);
+  text-align:center;line-height:1.3;
+}
+.ch-card canvas{
+  max-height:185px;width:100%!important;
+}
+
+/* ═══════════════════════════════════════════
+   GRID HELPERS
+═══════════════════════════════════════════ */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.g2-wide{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:start}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+/* sub-section accent headers */
+.sub-hdr{
+  font-size:.68rem;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;padding:5px 10px 5px 12px;
+  border-left:3px solid;border-radius:0 4px 4px 0;
+  margin-bottom:10px;display:inline-block;
+}
+.sub-amber{color:var(--amber);border-color:var(--amber);background:var(--amber-lt)}
+.sub-teal {color:var(--teal);border-color:var(--teal);background:var(--teal-lt)}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+footer{
+  background:var(--navy);
+  padding:16px 44px;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:0;
+}
+footer .fl{font-size:.68rem;color:rgba(255,255,255,.3);letter-spacing:.3px}
+footer .fr{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:rgba(255,255,255,.2)}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media(max-width:1200px){
+  .main{padding:24px 28px 56px}
+  .hdr-bar,.hdr-nav,footer{padding-left:28px;padding-right:28px}
+  .cg4{grid-template-columns:repeat(2,1fr)}
+  .kpi-row.c4{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .g2,.g2-wide{grid-template-columns:1fr}
+  .cg3{grid-template-columns:repeat(2,1fr)}
+  .kpi-row.c3{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="hdr">
+  <div class="hdr-bar">
+    <div class="hdr-brand">
+      <div class="hdr-gem">IAM</div>
+      <div class="hdr-name">Identity &amp; Access <span>Management</span></div>
+    </div>
+    <div class="hdr-sep"></div>
+    <div class="hdr-subtitle">Executive Performance Dashboard</div>
+    <div class="hdr-right">
+      <div class="hdr-pill"><div class="pulse"></div>Live · Editable</div>
+      <div class="hdr-date">Q1 · 2025</div>
+    </div>
+  </div>
+  <nav class="hdr-nav" id="navBar">
+    <div class="nav-tab active" data-sec="0">Overview</div>
+    <div class="nav-tab" data-sec="1">Team Composition</div>
+    <div class="nav-tab" data-sec="2">Project Delivery</div>
+    <div class="nav-tab" data-sec="3">Planning &amp; Ownership</div>
+    <div class="nav-tab" data-sec="4">Production Support</div>
+    <div class="nav-tab" data-sec="5">Request Fulfillment</div>
+    <div class="nav-tab" data-sec="6">Workload</div>
+  </nav>
+</header>
+
+<main class="main">
+
+<!-- ══════════════════════════════════════════════
+     SECTION 1 – TEAM COMPOSITION
+══════════════════════════════════════════════ -->
+<section class="section" id="sec1">
+  <div class="sec-hdr">
+    <span class="sec-badge">01</span>
+    <h2 class="sec-title">Team Composition</h2>
+    <span class="sec-hint">✎ Edit table or click chart segments — both sync</span>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-blue">👥</div>
+      <span class="card-title">IAM Team Headcount Distribution</span>
+      <span class="card-meta">Total FTEs: <strong id="t1total">14</strong></span>
+    </div>
+    <div class="card-body">
+      <div class="g2-wide">
+        <table class="tbl">
+          <thead><tr><th>Team / Function</th><th>Headcount</th><th>Share</th><th>Trend</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="t-name">IAM Development</td>
+              <td><input class="ei t1i" id="t1_0" data-idx="0" type="number" value="7" min="0"></td>
+              <td><span class="pill p-blue" id="t1p_0">50%</span></td>
+              <td><span class="pill p-green">▲ Core</span></td>
+            </tr>
+            <tr>
+              <td class="t-name">IAM Quality Assurance</td>
+              <td><input class="ei t1i" id="t1_1" data-idx="1" type="number" value="3" min="0"></td>
+              <td><span class="pill p-teal" id="t1p_1">21%</span></td>
+              <td><span class="pill p-slate">Stable</span></td>
+            </tr>
+            <tr>
+              <td class="t-name">IAM BAU</td>
+              <td><input class="ei t1i" id="t1_2" data-idx="2" type="number" value="2" min="0"></td>
+              <td><span class="pill p-amber" id="t1p_2">14%</span></td>
+              <td><span class="pill p-slate">Stable</span></td>
+            </tr>
+            <tr>
+              <td class="t-name">IAM Prod Support</td>
+              <td><input class="ei t1i" id="t1_3" data-idx="3" type="number" value="2" min="0"></td>
+              <td><span class="pill p-purple" id="t1p_3">14%</span></td>
+              <td><span class="pill p-slate">Stable</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display:flex;flex-direction:column;align-items:center;padding-top:8px">
+          <canvas id="chart1" style="max-height:270px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 2 – PROJECT DELIVERY
+══════════════════════════════════════════════ -->
+<section class="section" id="sec2">
+  <div class="sec-hdr">
+    <span class="sec-badge">02</span>
+    <h2 class="sec-title">Development · Project Delivery Performance</h2>
+    <span class="sec-hint">✎ Edit table or click chart segments — both sync</span>
+  </div>
+
+  <!-- KPI Tiles -->
+  <div class="kpi-row c4" id="kpi2"></div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-teal">📊</div>
+      <span class="card-title">KPI Breakdown — Current vs Previous vs Target</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl" style="margin-bottom:20px">
+        <thead>
+          <tr><th>KPI</th><th>Current</th><th>Previous</th><th>Target</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="t-name">Avg Project Cycle Time (Days)</td>
+            <td><input class="ei t2c" data-idx="0" type="number" value="54" min="0"></td>
+            <td><input class="ei t2p" data-idx="0" type="number" value="60" min="0"></td>
+            <td class="t-mono">≤ 65 days</td>
+            <td><span class="pill p-green">✓ On Target</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Projects Delivered</td>
+            <td><input class="ei t2c" data-idx="1" type="number" value="2" min="0"></td>
+            <td><input class="ei t2p" data-idx="1" type="number" value="2" min="0"></td>
+            <td class="t-mono">—</td>
+            <td><span class="pill p-slate">Stable</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">On-Time Delivery %</td>
+            <td><input class="ei t2c" data-idx="2" type="number" value="92" min="0" max="100"></td>
+            <td><input class="ei t2p" data-idx="2" type="number" value="90" min="0" max="100"></td>
+            <td class="t-mono">≥ 90%</td>
+            <td><span class="pill p-green">✓ Exceeds</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Rework Rate %</td>
+            <td><input class="ei t2c" data-idx="3" type="number" value="4" min="0" max="100"></td>
+            <td><input class="ei t2p" data-idx="3" type="number" value="5" min="0" max="100"></td>
+            <td class="t-mono">≤ 5%</td>
+            <td><span class="pill p-green">✓ On Target</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="chart-grid cg4" id="cg2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 3 – PLANNING & OWNERSHIP
+══════════════════════════════════════════════ -->
+<section class="section" id="sec3">
+  <div class="sec-hdr">
+    <span class="sec-badge">03</span>
+    <h2 class="sec-title">Development · Planning &amp; Ownership — Q2</h2>
+    <span class="sec-hint">✎ Edit table or click chart segments — both sync</span>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-blue">🎯</div>
+      <span class="card-title">Attribute Performance vs Good Benchmark</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl" style="margin-bottom:20px">
+        <thead>
+          <tr><th>Attribute</th><th>Measurement / Value</th><th>Source</th><th>Benchmark</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="t-name">Estimation Accuracy</td>
+            <td>Planned vs Actual (54 vs 50) — <input class="ei t3i" data-idx="0" type="number" value="8" min="0" max="100" style="width:58px;display:inline-block">% variance</td>
+            <td><span class="pill p-blue">Jira</span></td>
+            <td class="t-mono">≤ 10% var.</td>
+            <td><span class="pill p-green">✓ Within</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Task Ownership</td>
+            <td>Follow-ups needed — <input class="ei t3i" data-idx="1" type="number" value="1" min="0" max="5" style="width:58px;display:inline-block"> (1 = Low)</td>
+            <td><span class="pill p-blue">Mgr Review</span></td>
+            <td class="t-mono">Low</td>
+            <td><span class="pill p-green">✓ Low</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Proactiveness</td>
+            <td>Issues raised early — <input class="ei t3i" data-idx="2" type="number" value="9" min="0" style="width:58px;display:inline-block"></td>
+            <td><span class="pill p-blue">Jira</span></td>
+            <td class="t-mono">≥ 1 / qtr</td>
+            <td><span class="pill p-green">✓ Exceeds</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Scope Control</td>
+            <td>Scope creep — <input class="ei t3i" data-idx="3" type="number" value="1" min="0" max="5" style="width:58px;display:inline-block"> (1 = Minimal)</td>
+            <td><span class="pill p-blue">Change Logs</span></td>
+            <td class="t-mono">Minimal</td>
+            <td><span class="pill p-green">✓ Minimal</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="chart-grid cg4" id="cg3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 4 – PRODUCTION SUPPORT DEFECTS
+══════════════════════════════════════════════ -->
+<section class="section" id="sec4">
+  <div class="sec-hdr">
+    <span class="sec-badge">04</span>
+    <h2 class="sec-title">Production Support · Defects &amp; Issues Fulfillment</h2>
+    <span class="sec-hint">✎ Edit table or click chart segments — both sync</span>
+  </div>
+
+  <div class="kpi-row c3" id="kpi4"></div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-red">🛠</div>
+      <span class="card-title">Defect Resolution Performance</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl" style="margin-bottom:20px">
+        <thead><tr><th>KPI</th><th>Value</th><th>Target</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="t-name">Total Defects / Issues Handled</td>
+            <td><input class="ei t4i" data-idx="0" type="number" value="10" min="0"></td>
+            <td class="t-mono">—</td>
+            <td><span class="pill p-slate">Informational</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">SLA Adherence</td>
+            <td><input class="ei t4i" data-idx="1" type="number" value="96" min="0" max="100"> <span style="color:var(--muted);font-size:.8rem">%</span></td>
+            <td class="t-mono">≥ 95%</td>
+            <td><span class="pill p-green">✓ Exceeds</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Avg Completion Time</td>
+            <td><input class="ei t4i" data-idx="2" type="number" value="1.8" step="0.1" min="0"> <span style="color:var(--muted);font-size:.8rem">days</span></td>
+            <td class="t-mono">≤ 3 days</td>
+            <td><span class="pill p-green">✓ On Target</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="chart-grid cg3" id="cg4"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 5 – REQUEST FULFILLMENT
+══════════════════════════════════════════════ -->
+<section class="section" id="sec5">
+  <div class="sec-hdr">
+    <span class="sec-badge">05</span>
+    <h2 class="sec-title">Request Fulfillment Performance · BAU &amp; Prod Support</h2>
+    <span class="sec-hint">✎ Edit table or click chart segments — both sync</span>
+  </div>
+
+  <div class="kpi-row c4" id="kpi5"></div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-green">⚡</div>
+      <span class="card-title">Fulfilment Volume, SLA &amp; Request Channel Breakdown</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl" style="margin-bottom:20px">
+        <thead><tr><th>KPI</th><th>Value</th><th>Target</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="t-name">Total Requests Handled</td>
+            <td><input class="ei t5i" data-idx="0" type="number" value="19570" min="0"></td>
+            <td class="t-mono">—</td>
+            <td><span class="pill p-slate">Volume Metric</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">SLA Adherence</td>
+            <td><input class="ei t5i" data-idx="1" type="number" value="99" min="0" max="100"> <span style="color:var(--muted);font-size:.8rem">%</span></td>
+            <td class="t-mono">≥ 95%</td>
+            <td><span class="pill p-green">✓ Exceeds</span></td>
+          </tr>
+          <tr>
+            <td class="t-name">Avg Completion Time</td>
+            <td><input class="ei t5i" data-idx="2" type="number" value="20" min="0"> <span style="color:var(--muted);font-size:.8rem">mins</span></td>
+            <td class="t-mono">≤ 120 mins</td>
+            <td><span class="pill p-green">✓ On Target</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="g2" style="margin-bottom:20px">
+        <div>
+          <div class="sub-hdr sub-amber">Manual Requests — 475 (2.5%)</div>
+          <table class="tbl">
+            <thead><tr><th>Sub-Category</th><th>Count</th></tr></thead>
+            <tbody>
+              <tr><td>BI Publisher Report</td><td><input class="ei t5m" data-idx="0" type="number" value="372" min="0"></td></tr>
+              <tr><td>Workday Dropped User Report</td><td><input class="ei t5m" data-idx="1" type="number" value="25" min="0"></td></tr>
+              <tr><td>Monthly / Quarterly Audits</td><td><input class="ei t5m" data-idx="2" type="number" value="33" min="0"></td></tr>
+              <tr><td>Quarterly Patching</td><td><input class="ei t5m" data-idx="3" type="number" value="45" min="0"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="sub-hdr sub-teal">Automated Requests — 19,157 (97.5%)</div>
+          <table class="tbl">
+            <thead><tr><th>Sub-Category</th><th>Count</th></tr></thead>
+            <tbody>
+              <tr><td>Daily Feed Files</td><td><input class="ei t5a" data-idx="0" type="number" value="300" min="0"></td></tr>
+              <tr><td>Access Portal Email Notifications</td><td><input class="ei t5a" data-idx="1" type="number" value="545" min="0"></td></tr>
+              <tr><td>Access Portal Requests</td><td><input class="ei t5a" data-idx="2" type="number" value="10872" min="0"></td></tr>
+              <tr><td>OIM Scheduled Jobs</td><td><input class="ei t5a" data-idx="3" type="number" value="7440" min="0"></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="chart-grid cg4" id="cg5"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     SECTION 6 – WORKLOAD DISTRIBUTION
+══════════════════════════════════════════════ -->
+<section class="section" id="sec6">
+  <div class="sec-hdr">
+    <span class="sec-badge">06</span>
+    <h2 class="sec-title">Workload Distribution</h2>
+    <span class="sec-hint">✎ Edit table or click chart segments — both sync</span>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-amber">📦</div>
+      <span class="card-title">Effort Allocation by Category</span>
+      <span class="card-meta">Total: <strong id="t6total">100</strong>%</span>
+    </div>
+    <div class="card-body">
+      <div class="g2-wide">
+        <table class="tbl">
+          <thead><tr><th>Category</th><th>Allocation (%)</th><th>Share</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="t-name">OIM Integration</td>
+              <td><input class="ei t6i" data-idx="0" type="number" value="35" min="0" max="100"></td>
+              <td><span class="pill p-blue" id="t6p_0">35%</span></td>
+            </tr>
+            <tr>
+              <td class="t-name">Okta Integrations</td>
+              <td><input class="ei t6i" data-idx="1" type="number" value="20" min="0" max="100"></td>
+              <td><span class="pill p-teal" id="t6p_1">20%</span></td>
+            </tr>
+            <tr>
+              <td class="t-name">BAU Support</td>
+              <td><input class="ei t6i" data-idx="2" type="number" value="20" min="0" max="100"></td>
+              <td><span class="pill p-amber" id="t6p_2">20%</span></td>
+            </tr>
+            <tr>
+              <td class="t-name">Production Support</td>
+              <td><input class="ei t6i" data-idx="3" type="number" value="25" min="0" max="100"></td>
+              <td><span class="pill p-purple" id="t6p_3">25%</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display:flex;flex-direction:column;align-items:center;padding-top:8px">
+          <canvas id="chart6" style="max-height:280px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="fl">Identity &amp; Access Management · Executive Performance Report · Q1 2025 · Confidential &amp; Proprietary</div>
+  <div class="fr">Generated: February 2025 · For Internal Distribution Only</div>
+</footer>
+
+<!-- ═══════════════════════════════════════════
+     CHART.JS SETUP + BIDIRECTIONAL SYNC
+═══════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Palette ── */
+const PAL = ['#1e56c8','#0891b2','#7c3aed','#b45309','#dc2626','#0ea5e9','#16a34a','#db2777'];
+const PALA = PAL.map(c=>c+'cc');
+const WHITE = '#ffffff';
+
+/* ── Shared Chart.js defaults ── */
+Chart.defaults.font.family = "'Outfit', sans-serif";
+Chart.defaults.color = '#6b7280';
+
+const tooltipCfg = {
+  backgroundColor:'#0b1f45',
+  titleColor:'#fff',
+  bodyColor:'rgba(255,255,255,.72)',
+  padding:10,cornerRadius:7,
+  titleFont:{family:"'Outfit'",size:12,weight:'600'},
+  bodyFont:{family:"'JetBrains Mono'",size:11},
+};
+
+const legendCfg = (pos='bottom') => ({
+  position:pos,
+  labels:{
+    color:'#374151',
+    font:{family:"'Outfit'",size:11},
+    boxWidth:10,padding:10,
+    usePointStyle:true,pointStyleWidth:8,
+  }
+});
+
+/* ── Make a pie ── */
+function mkPie(id, labels, data, colors, onClickCb) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type:'pie',
+    data:{
+      labels,
+      datasets:[{
+        data:[...data],
+        backgroundColor:colors.map(c=>c+'cc'),
+        borderColor:WHITE,borderWidth:2,hoverOffset:6
+      }]
+    },
+    options:{
+      responsive:true,
+      onClick:onClickCb||null,
+      plugins:{legend:legendCfg(),tooltip:tooltipCfg}
+    }
+  });
+}
+
+/* ── Make a doughnut ── */
+function mkDonut(id, labels, data, colors, onClickCb) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels,
+      datasets:[{
+        data:[...data],
+        backgroundColor:colors.map(c=>c+'cc'),
+        borderColor:WHITE,borderWidth:2,hoverOffset:4
+      }]
+    },
+    options:{
+      responsive:true,cutout:'62%',
+      onClick:onClickCb||null,
+      plugins:{legend:legendCfg(),tooltip:tooltipCfg}
+    }
+  });
+}
+
+/* ── Append a chart card into a grid ── */
+function addChartCard(gridId, canvasId, label) {
+  const grid = document.getElementById(gridId);
+  const div  = document.createElement('div');
+  div.className = 'ch-card';
+  div.innerHTML = `<div class="ch-label">${label}</div><canvas id="${canvasId}"></canvas>`;
+  grid.appendChild(div);
+}
+
+/* ── Prompt-to-edit on chart click ── */
+function promptEdit(chart, segIdx, currentVal, onSave) {
+  const v = prompt(`Update value for "${chart.data.labels[segIdx]}":`, currentVal);
+  if(v===null) return;
+  const n = parseFloat(v);
+  if(isNaN(n)) return;
+  onSave(segIdx, n);
+}
+
+/* ════════════════════════════════════════
+   SECTION 1 – TEAM COMPOSITION
+════════════════════════════════════════ */
+let c1;
+(function(){
+  const labels = ['IAM Development','IAM Quality Assurance','IAM BAU','IAM Prod Support'];
+  const colors = [PAL[0],PAL[1],PAL[2],PAL[3]];
+
+  function getVals(){ return [...document.querySelectorAll('.t1i')].map(i=>+i.value||0); }
+
+  function refreshPills(vals){
+    const total = vals.reduce((a,b)=>a+b,0)||1;
+    vals.forEach((v,i)=>{
+      const p = document.getElementById(`t1p_${i}`);
+      if(p) p.textContent = Math.round(v/total*100)+'%';
+    });
+    document.getElementById('t1total').textContent = vals.reduce((a,b)=>a+b,0);
+  }
+
+  c1 = mkPie('chart1', labels, getVals(), colors, function(evt,els){
+    if(!els.length) return;
+    const i = els[0].index;
+    promptEdit(c1, i, c1.data.datasets[0].data[i], (idx,val)=>{
+      c1.data.datasets[0].data[idx] = val;
+      c1.update('active');
+      document.getElementById(`t1_${idx}`).value = val;
+      refreshPills(getVals());
+    });
+  });
+
+  document.querySelectorAll('.t1i').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      c1.data.datasets[0].data = getVals();
+      c1.update('active');
+      refreshPills(getVals());
+    });
+  });
+
+  refreshPills(getVals());
+})();
+
+/* ════════════════════════════════════════
+   SECTION 2 – PROJECT DELIVERY
+════════════════════════════════════════ */
+const charts2 = [];
+(function(){
+  const rows = [
+    { label:'Avg Cycle Time (Days)',  units:['days','days'], kpiUnit:'days' },
+    { label:'Projects Delivered',     units:['',''],         kpiUnit:'' },
+    { label:'On-Time Delivery (%)',   units:['%','%'],       kpiUnit:'%' },
+    { label:'Rework Rate (%)',        units:['%','%'],       kpiUnit:'%' },
+  ];
+
+  /* KPI tiles */
+  const strip = document.getElementById('kpi2');
+  rows.forEach((r,i)=>{
+    const tile = document.createElement('div');
+    tile.className='kpi';
+    const cVal = +document.querySelector(`.t2c[data-idx="${i}"]`).value||0;
+    tile.innerHTML=`<div class="kpi-lbl">${r.label}</div>
+      <div class="kpi-val" id="kv2_${i}">${cVal}${r.kpiUnit}</div>
+      <div class="kpi-sub">Current period</div>`;
+    strip.appendChild(tile);
+  });
+
+  /* 4 charts */
+  rows.forEach((r,i)=>{
+    addChartCard('cg2',`c2_${i}`,r.label);
+    const cur  = +document.querySelector(`.t2c[data-idx="${i}"]`).value||0;
+    const prev = +document.querySelector(`.t2p[data-idx="${i}"]`).value||0;
+    const ch = mkPie(`c2_${i}`,['Current','Previous'],[cur,prev],[PAL[0],PAL[1]],
+      function(evt,els){
+        if(!els.length) return;
+        const seg = els[0].index; // 0=current,1=previous
+        const cls = seg===0?`.t2c[data-idx="${i}"]`:`.t2p[data-idx="${i}"]`;
+        promptEdit(ch, seg, ch.data.datasets[0].data[seg],(idx,val)=>{
+          ch.data.datasets[0].data[idx]=val;
+          ch.update('active');
+          document.querySelector(cls).value=val;
+          if(seg===0) document.getElementById(`kv2_${i}`).textContent=val+r.kpiUnit;
+        });
+      });
+    charts2.push(ch);
+  });
+
+  /* table → chart */
+  document.querySelectorAll('.t2c,.t2p').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      rows.forEach((_,i)=>{
+        const c=+document.querySelector(`.t2c[data-idx="${i}"]`).value||0;
+        const p=+document.querySelector(`.t2p[data-idx="${i}"]`).value||0;
+        charts2[i].data.datasets[0].data=[c,p];
+        charts2[i].update('active');
+        document.getElementById(`kv2_${i}`).textContent=c+rows[i].kpiUnit;
+      });
+    });
+  });
+})();
+
+/* ════════════════════════════════════════
+   SECTION 3 – PLANNING & OWNERSHIP
+════════════════════════════════════════ */
+const charts3 = [];
+(function(){
+  const rows=[
+    {label:'Estimation Accuracy',bmk:10},
+    {label:'Task Ownership',bmk:3},
+    {label:'Proactiveness',bmk:9},
+    {label:'Scope Control',bmk:3},
+  ];
+  rows.forEach((r,i)=>{
+    addChartCard('cg3',`c3_${i}`,r.label);
+    const val=+document.querySelector(`.t3i[data-idx="${i}"]`).value||0;
+    const ch=mkPie(`c3_${i}`,['Actual','Benchmark'],[val,r.bmk],[PAL[2],PAL[3]],
+      function(evt,els){
+        if(!els.length||els[0].index!==0) return;
+        promptEdit(ch,0,ch.data.datasets[0].data[0],(_,v)=>{
+          ch.data.datasets[0].data[0]=v;
+          ch.update('active');
+          document.querySelector(`.t3i[data-idx="${i}"]`).value=v;
+        });
+      });
+    charts3.push({ch,bmk:r.bmk});
+  });
+
+  document.querySelectorAll('.t3i').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const i=+inp.dataset.idx;
+      charts3[i].ch.data.datasets[0].data[0]=+inp.value||0;
+      charts3[i].ch.update('active');
+    });
+  });
+})();
+
+/* ════════════════════════════════════════
+   SECTION 4 – PRODUCTION SUPPORT
+════════════════════════════════════════ */
+const charts4=[];
+(function(){
+  const rows=[
+    {label:'Total Defects Handled',max:20,kpiUnit:'',kpiLbl:'Total Issues'},
+    {label:'SLA Adherence (%)',max:100,kpiUnit:'%',kpiLbl:'SLA Adherence'},
+    {label:'Avg Completion (days)',max:3,kpiUnit:' days',kpiLbl:'Avg. Completion'},
+  ];
+  const defaults=[10,96,1.8];
+
+  /* KPI tiles */
+  const strip=document.getElementById('kpi4');
+  rows.forEach((r,i)=>{
+    const tile=document.createElement('div');
+    tile.className='kpi';
+    tile.innerHTML=`<div class="kpi-lbl">${r.kpiLbl}</div>
+      <div class="kpi-val" id="kv4_${i}">${defaults[i]}${r.kpiUnit}</div>
+      <div class="kpi-sub">Target: ${['—','≥95%','≤3 days'][i]}</div>`;
+    strip.appendChild(tile);
+  });
+
+  /* charts */
+  rows.forEach((r,i)=>{
+    addChartCard('cg4',`c4_${i}`,r.label);
+    const v=defaults[i];
+    const ch=mkDonut(`c4_${i}`,[r.label,'Remaining'],[v,Math.max(r.max-v,0)],[PAL[i],'#e4e8f0'],
+      function(evt,els){
+        if(!els.length||els[0].index!==0) return;
+        promptEdit(ch,0,ch.data.datasets[0].data[0],(_,val)=>{
+          ch.data.datasets[0].data=[val,Math.max(r.max-val,0)];
+          ch.update('active');
+          document.querySelector(`.t4i[data-idx="${i}"]`).value=val;
+          document.getElementById(`kv4_${i}`).textContent=val+r.kpiUnit;
+        });
+      });
+    charts4.push({ch,max:r.max,unit:r.kpiUnit});
+  });
+
+  document.querySelectorAll('.t4i').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const i=+inp.dataset.idx;
+      const v=+inp.value||0;
+      charts4[i].ch.data.datasets[0].data=[v,Math.max(charts4[i].max-v,0)];
+      charts4[i].ch.update('active');
+      document.getElementById(`kv4_${i}`).textContent=v+charts4[i].unit;
+    });
+  });
+})();
+
+/* ════════════════════════════════════════
+   SECTION 5 – REQUEST FULFILLMENT
+════════════════════════════════════════ */
+let c5sla,c5time,c5man,c5auto;
+(function(){
+  /* KPI tiles */
+  const strip=document.getElementById('kpi5');
+  const kpis=[
+    {lbl:'Total Requests',val:'19,570',sub:'All channels'},
+    {lbl:'SLA Adherence',val:'99%',sub:'Target ≥95%'},
+    {lbl:'Avg Completion',val:'20 mins',sub:'Target ≤120 min'},
+    {lbl:'Automation Rate',val:'97.5%',sub:'Automated share'},
+  ];
+  kpis.forEach((k,i)=>{
+    const tile=document.createElement('div');
+    tile.className='kpi';
+    tile.innerHTML=`<div class="kpi-lbl">${k.lbl}</div>
+      <div class="kpi-val" id="kv5_${i}">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>`;
+    strip.appendChild(tile);
+  });
+
+  /* Build all 4 chart cards */
+  addChartCard('cg5','c5_sla','SLA Adherence (%)');
+  addChartCard('cg5','c5_time','Avg Completion vs Target');
+  addChartCard('cg5','c5_man','Manual Requests Breakdown');
+  addChartCard('cg5','c5_auto','Automated Requests Breakdown');
+
+  function getMvals(){ return [...document.querySelectorAll('.t5m')].map(i=>+i.value||0); }
+  function getAvals(){ return [...document.querySelectorAll('.t5a')].map(i=>+i.value||0); }
+  function getSla()  { return +document.querySelector('.t5i[data-idx="1"]').value||0; }
+  function getTime() { return +document.querySelector('.t5i[data-idx="2"]').value||0; }
+
+  /* SLA donut */
+  c5sla=mkDonut('c5_sla',['SLA Met','SLA Missed'],[99,1],[PAL[1],'#e4e8f0'],
+    function(evt,els){
+      if(!els.length||els[0].index!==0) return;
+      promptEdit(c5sla,0,c5sla.data.datasets[0].data[0],(_,val)=>{
+        c5sla.data.datasets[0].data=[val,100-val];
+        c5sla.update('active');
+        document.querySelector('.t5i[data-idx="1"]').value=val;
+        document.getElementById('kv5_1').textContent=val+'%';
+      });
+    });
+
+  /* Time donut */
+  c5time=mkDonut('c5_time',['Used (mins)','Budget Left'],[20,100],[PAL[0],'#e4e8f0'],
+    function(evt,els){
+      if(!els.length||els[0].index!==0) return;
+      promptEdit(c5time,0,c5time.data.datasets[0].data[0],(_,val)=>{
+        c5time.data.datasets[0].data=[val,Math.max(120-val,0)];
+        c5time.update('active');
+        document.querySelector('.t5i[data-idx="2"]').value=val;
+        document.getElementById('kv5_2').textContent=val+' mins';
+      });
+    });
+
+  const manLabels=['BI Publisher','Workday Dropped User','Monthly/Qtrly Audits','Quarterly Patching'];
+  const autoLabels=['Daily Feed Files','Portal Email Notifs','Portal Requests','OIM Scheduled Jobs'];
+
+  /* Manual pie */
+  c5man=mkPie('c5_man',manLabels,getMvals(),[PAL[3],PAL[4],PAL[5],PAL[6]],
+    function(evt,els){
+      if(!els.length) return;
+      const i=els[0].index;
+      promptEdit(c5man,i,c5man.data.datasets[0].data[i],(_,val)=>{
+        c5man.data.datasets[0].data[i]=val;
+        c5man.update('active');
+        document.querySelector(`.t5m[data-idx="${i}"]`).value=val;
+      });
+    });
+
+  /* Auto pie */
+  c5auto=mkPie('c5_auto',autoLabels,getAvals(),[PAL[0],PAL[1],PAL[2],PAL[7]],
+    function(evt,els){
+      if(!els.length) return;
+      const i=els[0].index;
+      promptEdit(c5auto,i,c5auto.data.datasets[0].data[i],(_,val)=>{
+        c5auto.data.datasets[0].data[i]=val;
+        c5auto.update('active');
+        document.querySelector(`.t5a[data-idx="${i}"]`).value=val;
+      });
+    });
+
+  /* table → chart */
+  document.querySelectorAll('.t5i,.t5m,.t5a').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const sla=getSla(), t=getTime();
+      c5sla.data.datasets[0].data=[sla,100-sla]; c5sla.update('active');
+      c5time.data.datasets[0].data=[t,Math.max(120-t,0)]; c5time.update('active');
+      c5man.data.datasets[0].data=getMvals(); c5man.update('active');
+      c5auto.data.datasets[0].data=getAvals(); c5auto.update('active');
+      document.getElementById('kv5_1').textContent=sla+'%';
+      document.getElementById('kv5_2').textContent=t+' mins';
+      /* update automation rate */
+      const totalReq=+document.querySelector('.t5i[data-idx="0"]').value||1;
+      const autoSum=getAvals().reduce((a,b)=>a+b,0);
+      document.getElementById('kv5_3').textContent=Math.round(autoSum/totalReq*100)+'%';
+      document.getElementById('kv5_0').textContent=(+document.querySelector('.t5i[data-idx="0"]').value||0).toLocaleString();
+    });
+  });
+})();
+
+/* ════════════════════════════════════════
+   SECTION 6 – WORKLOAD DISTRIBUTION
+════════════════════════════════════════ */
+let c6;
+(function(){
+  const labels=['OIM Integration','Okta Integrations','BAU Support','Production Support'];
+  const colors=[PAL[0],PAL[1],PAL[3],PAL[2]];
+
+  function getVals(){ return [...document.querySelectorAll('.t6i')].map(i=>+i.value||0); }
+  function refreshPills(vals){
+    const total=vals.reduce((a,b)=>a+b,0)||1;
+    vals.forEach((v,i)=>{
+      const p=document.getElementById(`t6p_${i}`);
+      if(p) p.textContent=Math.round(v/total*100)+'%';
+    });
+    document.getElementById('t6total').textContent=vals.reduce((a,b)=>a+b,0);
+  }
+
+  c6=mkPie('chart6',labels,getVals(),colors,function(evt,els){
+    if(!els.length) return;
+    const i=els[0].index;
+    promptEdit(c6,i,c6.data.datasets[0].data[i],(_,val)=>{
+      c6.data.datasets[0].data[i]=val;
+      c6.update('active');
+      document.querySelectorAll('.t6i')[i].value=val;
+      refreshPills(getVals());
+    });
+  });
+
+  document.querySelectorAll('.t6i').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      c6.data.datasets[0].data=getVals();
+      c6.update('active');
+      refreshPills(getVals());
+    });
+  });
+
+  refreshPills(getVals());
+})();
+
+/* ═══════════════════════════════════════
+   NAV TABS
+═══════════════════════════════════════ */
+document.querySelectorAll('.nav-tab').forEach(tab=>{
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    this.classList.add('active');
+    const ids=['','sec1','sec2','sec3','sec4','sec5','sec6'];
+    const secId=ids[+this.dataset.sec];
+    if(secId) document.getElementById(secId).scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+</script>
+</body>
+</html>
