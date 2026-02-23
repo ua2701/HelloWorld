@@ -1,3 +1,20 @@
+Hi Bharat,
+
+The dashboard is all set and ready to go! 😊
+
+Whenever you get a chance, please have a look and let me know what you think.
+
+You can use the below credentials to sign in to editor mode:
+
+**Email:** bharat.katkar
+**Password:** @123
+
+Happy to make any changes if needed.
+
+Thanks!
+
+
+
 # Managers with mixed DRs not in Monitored
 $LogMessages += -join($Q, '-> PH Direct Reports (Employee/NON-EMP) of Managers with mixed DRs not in SG_SSO_wAnywhere_Monitored group')
 $MissingMonitoredMixedManagerCount = 0
