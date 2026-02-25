@@ -1,3 +1,17 @@
+Need few changes:
+
+1. In the read-only(user role login) mode:
+In the overvoiew tab make the Team Composition & Workload Distribution charts to sit side by side instead of one below the other.
+The overview tab should contain the charts only as it is showing currenytly.
+beside overview tab we have other tabs so now on clicking each tab it should display on the things related to that tab. Display the things as displayed in editor mode but the tables values will be non-editable here. on clicking the tabs a slight upward movement is there it is disturbing the experience fix that.
+
+2. In the pdf/png, along with chart Include the below things which is visible in editor mode:
+for example in - Development · Project Delivery Performance: need the innerHTML strip need this thing to be present in the pdf/png. similalrly for Request Fulfillment Performance · BAU & Prod Support 
+
+3. The bar charts that present now in the dashoard are not looking standard they are looking pretty funky and small in lenght so need the industry standard crisp and clear perfect rectangle bar chart. put some spacing between rectangular bar as currently they are all merged. below each bar mmention what is repreenting   
+
+
+
 Need some changes:
 
 1. In Development · Project Delivery Performance:
