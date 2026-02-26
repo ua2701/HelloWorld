@@ -1,3 +1,35 @@
+Microsoft Performance Findings Regarding the wAnywhere Agent
+
+Hi Team,
+
+We are sharing Microsoft’s performance analysis findings regarding the Philippines Windows 11 Cloud PC slowness issue that has been under investigation for the past 3 weeks.
+
+Please refer to the forwarded email below for the detailed findings and performance results shared by Microsoft’s Windows Performance engineering team regarding the wAnywhere agent behavior on Windows 11 Cloud PCs.
+
+Based on their analysis, Microsoft has indicated that Windows components are not the primary source of the CPU spikes and has recommended engaging the wAnywhere vendor to review the application’s behavior and explore potential optimizations within the Windows 11 Cloud PC environment.
+
+Please review the information provided and share your feedback on:
+
+1. Any known performance considerations for Windows 11 Cloud PCs
+2. Opportunities to optimize polling/monitoring behavior
+3. Recommended configuration changes to reduce CPU utilization
+
+
+Let us know whether any additional logs or diagnostics are required from our side.
+
+
+Hi Bill,
+
+I have forwarded Microsoft’s performance findings and summary to the Shephertz team for their review and feedback, have copied you on that email for visibility, and requested that they analyze the wAnywhere agent behavior and provide recommendations on potential optimization options within the Windows 11 Cloud PC environment.
+
+Thanks,
+Usama
+
+
+
+
+
+
 Need few changes:
 
 1. In the read-only(user role login) mode:
