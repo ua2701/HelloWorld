@@ -1,3 +1,16 @@
+Agenda:
+
+Review pod crash alert requirement (Shephertz input)
+
+Validate Datadog metrics/logs for EKS cluster (est-estproduse1-eks-cluster-v1)
+
+Define monitor query (pod phase / restart count / CrashLoopBackOff)
+
+Configure thresholds & notification channels
+
+Finalize implementation steps
+
+
 Microsoft Performance Findings Regarding the wAnywhere Agent
 
 Hi Team,
