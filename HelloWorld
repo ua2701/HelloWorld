@@ -1,3 +1,28 @@
+
+// Step 2: Check for existing session — onAuthStateChange will fire sbLoad automatically
+const { data:{ session } } = await sb.auth.getSession();
+if(!session){
+  sbShowModal();
+}
+
+
+
+/* ── Always reload DB values when a session is established ── */
+sb.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'SIGNED_IN' && session){
+    userRole = await sbFetchRole(session);
+    document.getElementById('sbEditorBadge').style.display=(userRole==='admin')?'flex':'none';
+    document.getElementById('sbEditBtn').style.display=(userRole==='admin')?'inline-block':'none';
+    await sbLoad();
+  }
+  if(event === 'SIGNED_OUT'){
+    sbDisableEdit();
+    sbShowModal();
+  }
+});
+
+
+
 body.tab-overview .kpi-row { display: grid !important; }
 
 Agenda:
