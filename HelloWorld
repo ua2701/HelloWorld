@@ -1,3 +1,5 @@
+body.tab-overview .kpi-row { display: grid !important; }
+
 Agenda:
 
 Review pod crash alert requirement (Shephertz input)
