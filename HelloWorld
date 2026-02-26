@@ -1,3 +1,23 @@
+Hi Team,
+
+Thank you for outlining the structured diagnostic approach and the monitoring plan.
+
+However, based on the observations from our end, the server-side activity and resource utilization appeared normal during the affected window. Despite that, users continued to experience slowness issues in the VDI environment.
+
+Given the ongoing business impact, we recommend proceeding with a rollback of all the changes deployed on 02/05/2026, as listed in the earlier email.
+
+Post-rollback, we will closely monitor system performance and user experience to validate stability and confirm whether the issue is resolved.
+
+Please confirm the timeline for executing the rollback and share updates once completed.
+
+Appreciate your support in resolving this at the earliest.
+
+Regards,
+Usama
+
+
+
+
 
 // Step 2: Check for existing session — onAuthStateChange will fire sbLoad automatically
 const { data:{ session } } = await sb.auth.getSession();
