@@ -1,152 +1,3 @@
-Hi Team,
-
-Thank you for outlining the structured diagnostic approach and the monitoring plan.
-
-However, based on the observations from our end, the server-side activity and resource utilization appeared normal during the affected window. Despite that, users continued to experience slowness issues in the VDI environment.
-
-Given the ongoing business impact, we recommend proceeding with a rollback of all the changes deployed on 02/05/2026, as listed in the earlier email.
-
-Post-rollback, we will closely monitor system performance and user experience to validate stability and confirm whether the issue is resolved.
-
-Please confirm the timeline for executing the rollback and share updates once completed.
-
-Appreciate your support in resolving this at the earliest.
-
-Regards,
-Usama
-
-
-
-
-
-// Step 2: Check for existing session — onAuthStateChange will fire sbLoad automatically
-const { data:{ session } } = await sb.auth.getSession();
-if(!session){
-  sbShowModal();
-}
-
-
-
-/* ── Always reload DB values when a session is established ── */
-sb.auth.onAuthStateChange(async (event, session) => {
-  if(event === 'SIGNED_IN' && session){
-    userRole = await sbFetchRole(session);
-    document.getElementById('sbEditorBadge').style.display=(userRole==='admin')?'flex':'none';
-    document.getElementById('sbEditBtn').style.display=(userRole==='admin')?'inline-block':'none';
-    await sbLoad();
-  }
-  if(event === 'SIGNED_OUT'){
-    sbDisableEdit();
-    sbShowModal();
-  }
-});
-
-
-
-body.tab-overview .kpi-row { display: grid !important; }
-
-Agenda:
-
-Review pod crash alert requirement (Shephertz input)
-
-Validate Datadog metrics/logs for EKS cluster (est-estproduse1-eks-cluster-v1)
-
-Define monitor query (pod phase / restart count / CrashLoopBackOff)
-
-Configure thresholds & notification channels
-
-Finalize implementation steps
-
-
-Microsoft Performance Findings Regarding the wAnywhere Agent
-
-Hi Team,
-
-We are sharing Microsoft’s performance analysis findings regarding the Philippines Windows 11 Cloud PC slowness issue that has been under investigation for the past 3 weeks.
-
-Please refer to the forwarded email below for the detailed findings and performance results shared by Microsoft’s Windows Performance engineering team regarding the wAnywhere agent behavior on Windows 11 Cloud PCs.
-
-Based on their analysis, Microsoft has indicated that Windows components are not the primary source of the CPU spikes and has recommended engaging the wAnywhere vendor to review the application’s behavior and explore potential optimizations within the Windows 11 Cloud PC environment.
-
-Please review the information provided and share your feedback on:
-
-1. Any known performance considerations for Windows 11 Cloud PCs
-2. Opportunities to optimize polling/monitoring behavior
-3. Recommended configuration changes to reduce CPU utilization
-
-
-Let us know whether any additional logs or diagnostics are required from our side.
-
-
-Hi Bill,
-
-I have forwarded Microsoft’s performance findings and summary to the Shephertz team for their review and feedback, have copied you on that email for visibility, and requested that they analyze the wAnywhere agent behavior and provide recommendations on potential optimization options within the Windows 11 Cloud PC environment.
-
-Thanks,
-Usama
-
-
-
-
-
-
-Need few changes:
-
-1. In the read-only(user role login) mode:
-In the overvoiew tab make the Team Composition & Workload Distribution charts to sit side by side instead of one below the other.
-The overview tab should contain the charts only as it is showing currenytly.
-beside overview tab we have other tabs so now on clicking each tab it should display on the things related to that tab. Display the things as displayed in editor mode but the tables values will be non-editable here. on clicking the tabs a slight upward movement is there it is disturbing the experience fix that.
-
-2. In the pdf/png, along with chart Include the below things which is visible in editor mode:
-for example in - Development · Project Delivery Performance: need the innerHTML strip need this thing to be present in the pdf/png. similalrly for Request Fulfillment Performance · BAU & Prod Support 
-
-3. The bar charts that present now in the dashoard are not looking standard they are looking pretty funky and small in lenght so need the industry standard crisp and clear perfect rectangle bar chart. put some spacing between rectangular bar as currently they are all merged. below each bar mmention what is repreenting   
-
-
-
-Need some changes:
-
-1. In Development · Project Delivery Performance:
-Avg Cycle Time, On-Time Delivery, Projects Delivered, Rework Rate
-make bar charts having 3 verticals bars - target, previous, current having corresponding number/value inside. define the paraemters in the respective axis as what they are representing.
-
-2. Development · Planning & Ownership:
-Task Ownership -
-Follow-ups needed - value % - status
-value is the number from 1-100%
-status is High(1-32%), Medium(33-65%), Low(66-100%) 
-based on the value given the status should be set automatically based on the value given (with this set up no need for dropdown as we are entering values).
-In the pie chart:
-the chart is 1-100% and is filled accordingly based on defined values, if it is Low make it green, High-red, medium-yellow
-In the chart define references for low, medium, high. As now status displayed inside chart correctly the status maintain it.
-
-Whatever is done for Task Ownership do the same for Scope control where
-Maximum(1-32%), Moderate(33-65%), Minimal(66-100%)
-
-For proactiveness, make a bar chart having value inside and define the chart
-
-3.  For Team Composition and  Workload Distribution charts add the respective values inside the chart
-
-4. In Production Support · Defects & Issues Fulfillment:
-make Total Defects / Issues Handled chart a bar chart similar to proactiveness
-
-for Avg Completion Time, make the color inside the chart to green and mention the target value at tip of pie and the actual value on the area covered by the actual value of the chart - do the similarly for  SLA Adherence but do not change the color let it be as it is.
-
-5. Show the current dashboard in the editor mode - with tables and charts as it is currently.
-
-6. when no in Editor mode (Read-only mode), just shown the charts like:
-Team Composition: first chart with the same size but at the center (no table)
-Workload Distribution: Second chart with the same size but at the center (no table)
-Development · Project Delivery Performance: 3 chart - here display all the 4 charts side by side ina row (no table) - similarly for 
-Development · Planning & Ownership, Production Support · Defects & Issues Fulfillment, Request Fulfillment Performance · BAU & Prod Support
-
-7. On clicking download only the charts should be downloaded as displayed in read-only mode. maintain the same format as getting pdf/png which is perfect but only the difference is tables will not be present in the downloaded copy and are alinged as mentioned.
-
-8. On Opening the page, It should prompt for same authentication as it is prompting for sign-in editor mode. There should 2 roles admin role and user role.
-admin role user should be able to see the edit mode button and can edit and save the configurations.
-user role have only the read-only view and cannot see the edit mode button.
-
-
 Existing Supa base query:
 -- ═══════════════════════════════════════════════════════════
 --  IAM Dashboard v2 — Supabase SQL Setup
@@ -262,89 +113,105 @@ SELECT COUNT(*) AS total_rows FROM dashboard_values;
 
 
 
-Give the updated code and updated query and how to define roles for users
+Hi [Manager’s Name],
 
+I would like to provide an update regarding the monitoring and alerting setup discussion with the DevOps team and request your confirmation on a few key items.
 
- 
+### 1. Priority Level Confirmation
 
+The team has requested confirmation on the priority level to be set for the alerts. The defined priority levels are:
 
+* **P1** – System is down or severely impacting business
+* **P2** – Service is degraded but not fully down
+* **P3** – Warning or internal issue
 
-# Managers with mixed DRs not in Monitored
-$LogMessages += -join($Q, '-> PH Direct Reports (Employee/NON-EMP) of Managers with mixed DRs not in SG_SSO_wAnywhere_Monitored group')
-$MissingMonitoredMixedManagerCount = 0
-$AllManagers = $WorkdayData | Where-Object {$_.isManager -eq '1' -and $_.Worker_Type -eq 'Employee'} | Select-Object -Unique User_Name, location, Worker
+Since this setup impacts production workloads and business compliance, please confirm which priority level should be configured for the alerts.
 
-# Build ALL NON-EMP direct reports lookup (not just PH)
-$AllNonEmpDirectReportsByManager = @{}
-foreach ($nonEmp in $AllNonEmpUsers) {
-    if ($EXLNonEmpNames.ContainsKey($nonEmp.SamAccountName)) {
-        continue
-    }
+---
 
-    if ($nonEmp.Manager) {
-        $managerObj = $ManagerCache[$nonEmp.Manager]
-        if ($managerObj) {
-            $mgrSam = $managerObj.SamAccountName
-            if (-not $AllNonEmpDirectReportsByManager.ContainsKey($mgrSam)) {
-                $AllNonEmpDirectReportsByManager[$mgrSam] = @()
-            }
-            $AllNonEmpDirectReportsByManager[$mgrSam] += $nonEmp
-        }
-    }
-}
+### 2. System Flow
 
-foreach ($Manager in $AllManagers) {
-    $AllDirectReportsEmp = @()
-    if ($DirectReportsByManager.ContainsKey($Manager.Worker)) {
-        $AllDirectReportsEmp = $DirectReportsByManager[$Manager.Worker]
-    }
+The alerting flow will be as follows:
 
-    $AllDirectReportsNonEmp = @()
-    if ($AllNonEmpDirectReportsByManager.ContainsKey($Manager.User_Name)) {
-        $AllDirectReportsNonEmp = $AllNonEmpDirectReportsByManager[$Manager.User_Name]
-    }
+**Kubernetes → Datadog → PagerDuty → Alert → [iamengineering@empower.com](mailto:iamengineering@empower.com)**
+(Based on the defined escalation levels)
 
-    if ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0) {
-        $empLocationGroups   = $AllDirectReportsEmp   | Group-Object location
-        $nonEmpLocationGroups = $AllDirectReportsNonEmp | Group-Object { if ($_.Country) { $_.Country } else { 'Unknown' } }
+---
 
-        $hasPHReports    = ($empLocationGroups    | Where-Object { $_.Name -eq 'PH Manila' }).Count -gt 0 -or
-                           ($nonEmpLocationGroups  | Where-Object { $_.Name -eq 'PH' -or $_.Name -eq 'Philippines' }).Count -gt 0
-        $hasNonPHReports = ($empLocationGroups    | Where-Object { $_.Name -ne 'PH Manila' }).Count -gt 0 -or
-                           ($nonEmpLocationGroups  | Where-Object { $_.Name -ne 'PH' -and $_.Name -ne 'Philippines' }).Count -gt 0
+### 3. Namespaces for Monitoring Setup
 
-        if ($hasPHReports -and $hasNonPHReports) {
-            # Check PH Employee DRs of this manager
-            $PHEmpDRs = $AllDirectReportsEmp | Where-Object { $_.location -eq 'PH Manila' }
-            foreach ($phEmpDR in $PHEmpDRs) {
-                if (-not $wAnywhereMonitoredNames.ContainsKey($phEmpDR.User_Name)) {
-                    $DiscrepancyLine = 'PH Employee DR of Manager with mixed DRs not in Monitored group,' + $phEmpDR.isManager + ',' + $phEmpDR.User_Name + ',' + $phEmpDR.primaryWorkEmail + ',' + $phEmpDR.location + ',' + $Manager.User_Name
-                    $Discrepancies += $DiscrepancyLine
-                    $MissingMonitoredMixedManagerCount++
-                    $LogMessages += -join($Q, $Q, '-> Id: ', $phEmpDR.User_Name, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
-                }
-            }
+Monitoring alerts will be configured for the following namespaces:
 
-            # Check PH NON-EMP DRs of this manager
-            $PHNonEmpDRs = $AllDirectReportsNonEmp | Where-Object { $_.Country -eq 'PH' -or $_.Country -eq 'Philippines' }
-            foreach ($phNonEmpDR in $PHNonEmpDRs) {
-                if (-not $wAnywhereMonitoredNames.ContainsKey($phNonEmpDR.SamAccountName)) {
-                    $DiscrepancyLine = 'PH NON-EMP DR of Manager with mixed DRs not in Monitored group,0,' + $phNonEmpDR.SamAccountName + ',,PH,' + $Manager.User_Name
-                    $Discrepancies += $DiscrepancyLine
-                    $MissingMonitoredMixedManagerCount++
-                    $LogMessages += -join($Q, $Q, '-> Id: ', $phNonEmpDR.SamAccountName, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
-                }
-            }
-        }
-    }
-}
+* front-end
+* microservice
+* mongodb
 
-$LogMessages += -join($Q, $Q, '-> ', $MissingMonitoredMixedManagerCount)
-$LogMessages += '-------------------------------------------------------------------------------'
-$LogMessages += ""
+Additionally, cognitive services will be closely monitored due to higher CPU and memory usage.
 
+---
 
+### 4. Alert Thresholds / Noise Control
 
+We have shared the threshold document with the team (pod restarts, node pressure, pending pods, etc.).
+We will schedule a follow-up call to finalize thresholds and avoid alert noise during normal rollouts or restarts.
+
+---
+
+### 5. Estimated Timeline
+
+The DevOps team has provided the following estimate:
+
+* **Datadog Monitoring Setup:** ~1 week
+* **PagerDuty Integration & Escalation Setup:** ~1 week
+* **Total Estimated Time:** ~2 weeks
+
+---
+
+### 6. Tools Used
+
+* **Monitoring:** Datadog
+* **Escalation & Paging:** PagerDuty
+
+---
+
+### 7. Ticket Creation Required
+
+DevOps has requested that we raise a ticket for the following:
+
+* Datadog monitor creation
+* PagerDuty integration and escalation setup
+* Alert configuration
+
+Please confirm the process/tool for raising this ticket so we can proceed accordingly.
+
+---
+
+### 8. Escalation Matrix (For Confirmation)
+
+The team requires confirmation on the escalation matrix to configure PagerDuty correctly.
+
+Proposed escalation levels:
+
+* **Level 1:** Jim, Kym, Usama, Srikanth
+* **Level 2:** [iamengineering@empower.com](mailto:iamengineering@empower.com)
+* **Level 3:** Jim
+
+As discussed, the escalation matrix defines the order in which alerts are routed if the previous level does not acknowledge or resolve the incident.
+
+Please review and confirm if this structure is appropriate or if any changes are required.
+
+---
+
+Kindly confirm on:
+
+1. Priority level (P1/P2/P3)
+2. Escalation matrix approval or changes
+3. Ticket creation process
+
+Once confirmed, we will proceed with the next steps.
+
+Thanks and regards,
+Usama
 
 
 
@@ -357,75 +224,3 @@ $LogMessages += ""
 
 
 #HelloWorld
-
-https://cp.bluesnap.com/jsp/invoice.jsp?ref=BB7503802FFEC5861E825D88954C3CA0&eid=D14F8C21B7582AA2E9E3C0D38CD30B75C53C05C2CAF343707B4B394118FAA3AA217A7111243F5C010F3A4B0366DCB0A95C94049A5C5BCA4B10F5920618DF6F2392C5B2017273693A
-
-# Managers with mixed DRs not in Monitored
-$LogMessages += -join($Q, '-> PH Direct Reports (Employee/NON-EMP) of Managers with mixed DRs not in SG_SSO_wAnywhere_Monitored group')
-$MissingMonitoredMixedManagerCount = 0
-$AllManagers = $WorkdayData | Where-Object {$_.isManager -eq '1' -and $_.Worker_Type -eq 'Employee'} | Select-Object -Unique User_Name, location, Worker
-
-# Build ALL NON-EMP direct reports lookup (not just PH)
-$AllNonEmpDirectReportsByManager = @{}
-foreach ($nonEmp in $AllNonEmpUsers) {
-    if ($nonEmp.Manager) {
-        $managerObj = $ManagerCache[$nonEmp.Manager]
-        if ($managerObj) {
-            $mgrSam = $managerObj.SamAccountName
-            if (-not $AllNonEmpDirectReportsByManager.ContainsKey($mgrSam)) {
-                $AllNonEmpDirectReportsByManager[$mgrSam] = @()
-            }
-            $AllNonEmpDirectReportsByManager[$mgrSam] += $nonEmp
-        }
-    }
-}
-
-foreach ($Manager in $AllManagers) {
-    $AllDirectReportsEmp = @()
-    if ($DirectReportsByManager.ContainsKey($Manager.Worker)) {
-        $AllDirectReportsEmp = $DirectReportsByManager[$Manager.Worker]
-    }
-
-    $AllDirectReportsNonEmp = @()
-    if ($AllNonEmpDirectReportsByManager.ContainsKey($Manager.User_Name)) {
-        $AllDirectReportsNonEmp = $AllNonEmpDirectReportsByManager[$Manager.User_Name]
-    }
-
-    if ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0) {
-        $empLocationGroups   = $AllDirectReportsEmp   | Group-Object location
-        $nonEmpLocationGroups = $AllDirectReportsNonEmp | Group-Object { if ($_.Country) { $_.Country } else { 'Unknown' } }
-
-        $hasPHReports    = ($empLocationGroups    | Where-Object { $_.Name -eq 'PH Manila' }).Count -gt 0 -or
-                           ($nonEmpLocationGroups  | Where-Object { $_.Name -eq 'PH' -or $_.Name -eq 'Philippines' }).Count -gt 0
-        $hasNonPHReports = ($empLocationGroups    | Where-Object { $_.Name -ne 'PH Manila' }).Count -gt 0 -or
-                           ($nonEmpLocationGroups  | Where-Object { $_.Name -ne 'PH' -and $_.Name -ne 'Philippines' }).Count -gt 0
-
-        if ($hasPHReports -and $hasNonPHReports) {
-            # Check PH Employee DRs of this manager
-            $PHEmpDRs = $AllDirectReportsEmp | Where-Object { $_.location -eq 'PH Manila' }
-            foreach ($phEmpDR in $PHEmpDRs) {
-                if (-not $wAnywhereMonitoredNames.ContainsKey($phEmpDR.User_Name)) {
-                    $DiscrepancyLine = 'PH Employee DR of Manager with mixed DRs not in Monitored group,' + $phEmpDR.isManager + ',' + $phEmpDR.User_Name + ',' + $phEmpDR.primaryWorkEmail + ',' + $phEmpDR.location + ',' + $Manager.User_Name
-                    $Discrepancies += $DiscrepancyLine
-                    $MissingMonitoredMixedManagerCount++
-                    $LogMessages += -join($Q, $Q, '-> Id: ', $phEmpDR.User_Name, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
-                }
-            }
-
-            # Check PH NON-EMP DRs of this manager
-            $PHNonEmpDRs = $AllDirectReportsNonEmp | Where-Object { $_.Country -eq 'PH' -or $_.Country -eq 'Philippines' }
-            foreach ($phNonEmpDR in $PHNonEmpDRs) {
-                if (-not $wAnywhereMonitoredNames.ContainsKey($phNonEmpDR.SamAccountName)) {
-                    $DiscrepancyLine = 'PH NON-EMP DR of Manager with mixed DRs not in Monitored group,0,' + $phNonEmpDR.SamAccountName + ',,PH,' + $Manager.User_Name
-                    $Discrepancies += $DiscrepancyLine
-                    $MissingMonitoredMixedManagerCount++
-                    $LogMessages += -join($Q, $Q, '-> Id: ', $phNonEmpDR.SamAccountName, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
-                }
-            }
-        }
-    }
-}
-
-$LogMessages += -join($Q, $Q, '-> ', $MissingMonitoredMixedManagerCount)
-$LogMessages += '-------------------------------------------------------------------------------'
-$LogMessages += ""
