@@ -1,3 +1,37 @@
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', async()=>{
+  // Start in overview mode
+  document.body.classList.add('tab-overview');
+  sbDisableEdit();
+
+  // Disable section animations after initial load to prevent tab-switch jank
+  setTimeout(()=>{
+    document.querySelectorAll('.section').forEach(s=>s.classList.add('no-anim'));
+  }, 1200);
+
+  // Check for existing session (restored from sessionStorage on refresh)
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    // Session exists — load DB values now that all charts/listeners are ready
+    userRole = await sbFetchRole(session);
+    document.getElementById('sbEditorBadge').style.display=(userRole==='admin')?'flex':'none';
+    document.getElementById('sbEditBtn').style.display=(userRole==='admin')?'inline-block':'none';
+    await sbLoad();
+    sbToast(`✓ Signed in (${userRole})`,'ok');
+  } else {
+    sbShowModal();
+  }
+
+  // Make sure we're in overview on init
+  switchTab(0);
+
+  // Belt-and-suspenders: explicitly sign out when tab/window closes
+  window.addEventListener('beforeunload', () => { sb.auth.signOut(); });
+});
+
+
 Existing Supa base query:
 -- ═══════════════════════════════════════════════════════════
 --  IAM Dashboard v2 — Supabase SQL Setup
