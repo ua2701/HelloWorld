@@ -1,3 +1,46 @@
+window.addEventListener('DOMContentLoaded', async()=>{
+  // Start in overview mode
+  document.body.classList.add('tab-overview');
+  sbDisableEdit();
+
+  // Disable section animations after initial load to prevent tab-switch jank
+  setTimeout(()=>{
+    document.querySelectorAll('.section').forEach(s=>s.classList.add('no-anim'));
+  }, 1200);
+
+  // Step 1: Check session FIRST before anything else
+  const { data:{ session } } = await sb.auth.getSession();
+
+  if(!session){
+    // No session — build charts with defaults then show login
+    initCharts();
+    switchTab(0);
+    sbShowModal();
+    window.addEventListener('beforeunload', () => { sb.auth.signOut(); });
+    return;
+  }
+
+  // Step 2: Session exists — fetch role
+  userRole = await sbFetchRole(session);
+  document.getElementById('sbEditorBadge').style.display=(userRole==='admin')?'flex':'none';
+  document.getElementById('sbEditBtn').style.display=(userRole==='admin')?'inline-block':'none';
+
+  // Step 3: Build charts with hardcoded defaults first (registers all input listeners)
+  initCharts();
+
+  // Step 4: NOW load DB values — all listeners are ready so input events update charts correctly
+  await sbLoad();
+  sbToast(`✓ Signed in (${userRole})`,'ok');
+
+  switchTab(0);
+  window.addEventListener('beforeunload', () => { sb.auth.signOut(); });
+});
+
+
+
+
+
+
 /* ══════════════════════════════════════════
    INIT
 ══════════════════════════════════════════ */
