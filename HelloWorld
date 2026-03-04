@@ -167,3 +167,20 @@ function syncEst(){
 }
 document.querySelectorAll('.t3pl,.t3ac,.t3bmk').forEach(el=>el.addEventListener('input',syncEst));
 syncEst();
+
+
+
+
+if(cid==='c3_est'){
+      const pl=clampEl(document.querySelector('.t3pl[data-idx="0"]'));
+      const ac=clampEl(document.querySelector('.t3ac[data-idx="0"]'));
+      const bm=clampEl(document.querySelector('.t3bmk[data-idx="0"]'));
+      const vr=varPct(pl,ac);
+      ctx.font="700 15px 'Outfit'"; ctx.fillStyle='#0b1f45';
+      ctx.fillText(`${vr}%`, cx, cy-14);
+      ctx.strokeStyle='#d0d7e6'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(cx-18, cy-2); ctx.lineTo(cx+18, cy-2); ctx.stroke();
+      ctx.font="600 11px 'Outfit'"; ctx.fillStyle='#6b7280';
+      ctx.fillText(`of ${bm}%`, cx, cy+12);
+      ctx.font="500 10px 'Outfit'"; ctx.fillStyle='#9ca3af';
+      ctx.fillText('Variance / Target', cx, cy+26);
