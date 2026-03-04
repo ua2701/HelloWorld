@@ -107,3 +107,63 @@ INSERT INTO dashboard_values (id, value, text_value) VALUES
 -- ═══════════════════════════════════════════════════════════
 SELECT COUNT(*) AS total_rows FROM dashboard_values;
 -- Expected: 41
+
+
+
+
+function centerTextPlugin(cid, getText){
+  return {id:'ctp_'+cid, afterDraw(chart){
+    if(chart.canvas.id!==cid) return;
+    const{ctx,chartArea}=chart; if(!chartArea) return;
+    const{left,top,right,bottom}=chartArea;
+    const cx=(left+right)/2, cy=(top+bottom)/2;
+    ctx.save();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+
+    if(cid==='c3_est'){
+      const pl=clampEl(document.querySelector('.t3pl[data-idx="0"]'));
+      const ac=clampEl(document.querySelector('.t3ac[data-idx="0"]'));
+      ctx.font="700 15px 'Outfit'"; ctx.fillStyle='#0b1f45';
+      ctx.fillText(`${ac}`, cx, cy-14);
+      ctx.strokeStyle='#d0d7e6'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(cx-18, cy-2); ctx.lineTo(cx+18, cy-2); ctx.stroke();
+      ctx.font="600 11px 'Outfit'"; ctx.fillStyle='#6b7280';
+      ctx.fillText(`of ${pl}`, cx, cy+12);
+      ctx.font="500 10px 'Outfit'"; ctx.fillStyle='#9ca3af';
+      ctx.fillText('Actual / Planned', cx, cy+26);
+    } else {
+      ctx.font="700 14px 'Outfit'"; ctx.fillStyle='#0b1f45';
+      const t=getText(); const lines=String(t).split('\n');
+      lines.forEach((ln,i)=>ctx.fillText(ln,cx,cy+(i-(lines.length-1)/2)*16));
+    }
+    ctx.restore();
+  }};
+}
+
+const estCenter = centerTextPlugin('c3_est',()=>'');
+Chart.register(estCenter);
+
+document.getElementById('cg3').innerHTML = '';
+addChartCard('cg3','c3_est','Estimation Accuracy');
+// Planned = full circle (target/100%), Actual = filled portion
+const estChart = mkDonut('c3_est',['Actual','Remaining (Planned)'],[50,4],['#1e56c8','#e4e8f0'],null);
+
+function syncEst(){
+  const pl=clampEl(document.querySelector('.t3pl[data-idx="0"]'));
+  const ac=clampEl(document.querySelector('.t3ac[data-idx="0"]'));
+  const bm=clampEl(document.querySelector('.t3bmk[data-idx="0"]'));
+  const vr=varPct(pl,ac);
+  const el=document.getElementById('t3var_0'); if(el) el.textContent=vr;
+  // Actual as a proportion of Planned (Planned = 100% of the circle)
+  const actualSlice = pl > 0 ? Math.min(ac, pl) : 0;
+  const remainSlice = Math.max(pl - actualSlice, 0);
+  const overrun = ac > pl;
+  const withinBenchmark = !overrun && vr <= bm;
+  const fillColor = overrun ? '#dc2626' : withinBenchmark ? '#16a34a' : '#b45309';
+  estChart.data.labels = [`Actual (${ac})`, `Planned (${pl})`];
+  estChart.data.datasets[0].data = overrun ? [pl, 0] : [actualSlice, remainSlice];
+  estChart.data.datasets[0].backgroundColor = [fillColor+'dd', '#e4e8f0'];
+  estChart.update('active');
+}
+document.querySelectorAll('.t3pl,.t3ac,.t3bmk').forEach(el=>el.addEventListener('input',syncEst));
+syncEst();
