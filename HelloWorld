@@ -184,3 +184,20 @@ if(cid==='c3_est'){
       ctx.fillText(`of ${bm}%`, cx, cy+12);
       ctx.font="500 10px 'Outfit'"; ctx.fillStyle='#9ca3af';
       ctx.fillText('Variance / Target', cx, cy+26);
+
+
+
+
+
+} else if(cid==='c3_sco'){
+      const v=clampEl(document.querySelector('.t3sc[data-idx="3"]'));
+      const s=scopeStatus(v);
+      ctx.font="700 15px 'Outfit'"; ctx.fillStyle='#0b1f45';
+      ctx.fillText(s.label, cx, cy-6);
+      ctx.font="500 10px 'Outfit'"; ctx.fillStyle='#9ca3af';
+      ctx.fillText('Scope Creep', cx, cy+12);
+    } else {
+      ctx.font="700 14px 'Outfit'"; ctx.fillStyle='#0b1f45';
+      const t=getText(); const lines=String(t).split('\n');
+      lines.forEach((ln,i)=>ctx.fillText(ln,cx,cy+(i-(lines.length-1)/2)*16));
+    }
