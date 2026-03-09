@@ -201,3 +201,44 @@ if(cid==='c3_est'){
       const t=getText(); const lines=String(t).split('\n');
       lines.forEach((ln,i)=>ctx.fillText(ln,cx,cy+(i-(lines.length-1)/2)*16));
     }
+
+
+
+
+
+This request is to configure monitoring and alerting for EKS workloads using Datadog and PagerDuty.
+
+Monitoring Flow:
+Kubernetes → Datadog → PagerDuty → Alert → iamengineerind@empower.com
+
+Namespaces to be monitored:
+- front-end
+- microservice
+- mongodb
+
+Alert Priority:
+P3 – Warning or internal issue (confirmed by manager)
+
+Escalation Matrix:
+Level 1 – Jim, Kym, Usama, Srikanth
+Level 2 – iamengineerind@empower.com
+Level 3 – Jim
+
+Tasks:
+• Create Datadog monitors for the above namespaces
+• Configure alert thresholds for pods and node metrics
+• Integrate Datadog with PagerDuty
+• Configure escalation policy
+• Validate alert notification workflow
+
+Estimated timeline from DevOps team:
+Datadog setup – ~1 week
+PagerDuty integration – ~1 week
+Total – ~2 weeks
+
+• Datadog monitors are created for the specified namespaces
+• PagerDuty integration is configured successfully
+• Escalation policy is implemented as defined
+• Alerts trigger when thresholds are crossed
+• Notifications are sent to iamengineerind@empower.com
+• Monitoring setup validated and confirmed working
