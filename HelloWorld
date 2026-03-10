@@ -249,3 +249,427 @@ Hi Simran,
 In the wAnywhere Dev environment, I can see the license capacity as 1000 and the total users as 732, as shown in the screenshot. Based on this, it appears that 268 licenses are available.
 
 Could you please confirm if this is correct?
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+  IAM PERFORMANCE DASHBOARD — SETUP COMPARISON
+  Existing (Supabase) vs Proposed (AWS)
+  Prepared for Team Discussion
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 1 — OVERVIEW SUMMARY
+────────────────────────────────────────────────────────────────────────────────
+
+The IAM Performance Dashboard is a single HTML file (index.html) that displays
+project KPIs, charts, and metrics. It supports two user roles:
+  - Admin  : Can edit and save all values
+  - User   : Read-only, can view the dashboard
+
+Currently the dashboard uses Supabase (an external third-party database and auth
+platform) for two things:
+  1. Storing and retrieving dashboard values (database)
+  2. Logging users in and checking their role (authentication)
+
+The proposed change is to migrate both of these to AWS — which keeps everything
+inside the company's own infrastructure and eliminates the external dependency
+that caused the escalation.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 2 — EXISTING SETUP (SUPABASE)
+────────────────────────────────────────────────────────────────────────────────
+
+HOW IT WORKS TODAY
+------------------
+  - The HTML file is opened locally or shared as a file
+  - On load, it connects to Supabase over the internet (external server)
+  - Supabase handles login (email + password)
+  - After login, the dashboard fetches all saved values from the Supabase database
+  - When admin saves, values are written back to Supabase
+  - Any user who opens the file and logs in sees the same data
+
+SUPABASE CONFIGURATION (current)
+----------------------------------
+  Platform         : Supabase (supabase.com) — external SaaS, not company-owned
+  Project URL      : https://ammfnkciwwxbvlkunody.supabase.co
+  Auth type        : Email + Password (Supabase auth)
+  Session storage  : Browser sessionStorage (clears on tab/browser close)
+  Roles            : admin, user (stored in user_roles table)
+
+DATABASE — Supabase PostgreSQL
+-------------------------------
+  Table 1: dashboard_values
+    Columns:
+      - id          (text, primary key)   — e.g. "t2c_0", "hdr_month"
+      - value       (numeric)             — numeric KPI value
+      - text_value  (text)                — text value e.g. month name
+      - updated_at  (timestamp)           — last saved timestamp
+
+  Table 2: user_roles
+    Columns:
+      - user_id     (uuid, references auth.users)
+      - role        (text)                — "admin" or "user"
+
+  Data access:
+    - GET  : SELECT * FROM dashboard_values
+    - SAVE : UPSERT into dashboard_values (admin only)
+    - Role : SELECT role FROM user_roles WHERE user_id = current_user
+
+AUTHENTICATION — Supabase Auth
+--------------------------------
+  - Uses Supabase's built-in auth system
+  - Login via supabase.auth.signInWithPassword({ email, password })
+  - On success, Supabase returns a JWT token stored in sessionStorage
+  - Role is looked up from the user_roles table after login
+  - Logout: supabase.auth.signOut()
+  - Session auto-refreshes while the tab is open
+  - Session dies when the browser/tab is closed (sessionStorage)
+  - beforeunload event also calls signOut() to clean up
+
+REAL-TIME UPDATES — Supabase Realtime
+---------------------------------------
+  - Dashboard subscribes to postgres_changes on dashboard_values table
+  - When admin saves, all connected users receive an update notification
+  - Users' dashboards refresh automatically without needing to reload
+
+HOSTING
+--------
+  - No server — the HTML file is opened directly in a browser
+  - File is shared between users manually (email, shared drive, etc.)
+  - No HTTPS, no central URL — each user runs from their own copy of the file
+
+PROBLEMS WITH THE CURRENT SETUP
+----------------------------------
+  1. ESCALATION RISK     : Using an external third-party database (Supabase) was
+                           flagged/escalated — likely due to company data leaving
+                           the internal network to an outside server.
+
+  2. NO CENTRAL HOSTING  : Every user has their own copy of the HTML file.
+                           If the file is updated, all users need the new version.
+
+  3. NO HTTPS / SECURE URL : No proper URL — users open a local file, not a link.
+
+  4. REAL-TIME DEPENDENCY : Live updates require an active Supabase websocket
+                            connection to an external server.
+
+  5. DATA RESIDENCY      : All dashboard values are stored on Supabase servers
+                           (likely US-based), not within company infrastructure.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 3 — PROPOSED SETUP (AWS)
+────────────────────────────────────────────────────────────────────────────────
+
+HOW IT WILL WORK
+-----------------
+  - The HTML file is hosted on AWS S3 (inside company AWS account)
+  - Users access a single shared HTTPS URL (CloudFront)
+  - URL is accessible ONLY within the company network (WAF IP restriction)
+  - Login is handled by Amazon Cognito (AWS-native auth)
+  - Dashboard values are stored in Amazon DynamoDB (AWS-native database)
+  - When admin saves, values write to DynamoDB via Lambda + API Gateway
+  - All users see updated values on next page refresh
+  - Everything stays within the company's own AWS environment
+
+AWS SERVICES — FULL LIST
+-------------------------
+
+  1. AMAZON S3 (Simple Storage Service)
+     Purpose  : Hosts the index.html file (static website hosting)
+     What it  : Stores the single HTML file and serves it to CloudFront
+     replaces : Manual file sharing
+     Config   :
+       - Bucket name    : iam-dashboard-internal
+       - Public access  : BLOCKED (accessed only via CloudFront)
+       - Website mode   : Enabled (index.html as root)
+     Cost     : Free tier — 5 GB storage, 20,000 GET requests/month
+                Effectively $0 for one HTML file
+
+  2. AMAZON CLOUDFRONT (CDN)
+     Purpose  : Delivers the dashboard over HTTPS with a private company URL
+     What it  : Acts as the front door — gives users one URL to access the
+     replaces : Opening a local HTML file from disk
+     Config   :
+       - Origin         : S3 bucket (via OAC — secure, private connection)
+       - Protocol       : HTTPS only (HTTP redirects to HTTPS)
+       - Root object    : index.html
+       - Access control : WAF rule restricts to company IP range only
+     Result   : One URL like https://dXXXXXX.cloudfront.net shared with all users
+     Cost     : Free tier — 1 TB data transfer/month. Effectively $0
+
+  3. AMAZON COGNITO (User Auth)
+     Purpose  : Replaces Supabase auth — manages login, passwords, roles
+     What it  : AWS-native user directory — email + password login, JWT tokens,
+     replaces : Supabase authentication
+     Config   :
+       - User Pool name      : iam-dashboard-pool
+       - App Client          : iam-dashboard-client
+       - Client secret       : DISABLED (required for browser-based apps)
+       - Auth flow           : USER_PASSWORD_AUTH
+       - Self-registration   : DISABLED (admin creates accounts only)
+       - Groups              :
+           admin  — users in this group get edit/save access
+           user   — users in this group get read-only access
+       - MFA                 : Optional (can be enabled per company policy)
+     How roles work:
+       - After login, Cognito returns a JWT token
+       - The JWT contains a "cognito:groups" claim listing the user's groups
+       - Dashboard reads this claim to determine admin or user role
+       - No separate role table needed (role is embedded in the token)
+     Cost     : Free tier — 50,000 Monthly Active Users. Effectively $0
+
+  4. AWS LAMBDA (Serverless Function)
+     Purpose  : Backend logic — reads and writes DynamoDB
+     What it  : A small Node.js function that runs only when called (no server
+     replaces : Supabase's built-in database API
+     Config   :
+       - Function name  : iam-dashboard-api
+       - Runtime        : Node.js 20.x
+       - Permissions    : AmazonDynamoDBFullAccess IAM policy attached
+       - Handles        :
+           GET  request → scan all items from DynamoDB → return as JSON
+           POST request → loop through rows → write each to DynamoDB
+           OPTIONS      → return CORS headers (browser preflight)
+     Cost     : Free tier — 1,000,000 invocations/month. Effectively $0
+
+  5. AMAZON API GATEWAY (REST API)
+     Purpose  : Exposes Lambda as a URL that the HTML can call from the browser
+     What it  : Creates two HTTP endpoints the dashboard fetch() calls
+     replaces : Supabase REST API
+     Config   :
+       - API name       : iam-dashboard-api
+       - Type           : REST API (Regional)
+       - Resource       : /values
+       - Methods        :
+           GET  /values  → calls Lambda → returns all dashboard values
+           POST /values  → calls Lambda → saves all dashboard values
+       - CORS           : Enabled on /values resource
+       - Stage          : prod
+       - Invoke URL     : https://XXXXXXXXXX.execute-api.REGION.amazonaws.com/prod
+     Cost     : Free tier — 1,000,000 API calls/month. Effectively $0
+
+  6. AMAZON DYNAMODB (Database)
+     Purpose  : Stores all dashboard KPI values
+     What it  : AWS-native NoSQL key-value database, serverless, no maintenance
+     replaces : Supabase PostgreSQL (dashboard_values table)
+     Config   :
+       - Table name     : dashboard_values
+       - Partition key  : id (String)
+       - Sort key       : none
+       - Billing        : On-demand (pay per request — no upfront cost)
+       - Encryption     : AWS-managed (default)
+     Data structure (same as existing Supabase table):
+       - id          (String)  — unique field identifier e.g. "t2c_0"
+       - value       (Number)  — numeric value
+       - text_value  (String)  — text value e.g. "Feb", "2026"
+       - updated_at  (String)  — ISO timestamp of last save
+     Cost     : Free tier — 25 GB storage, 200M requests/month. Effectively $0
+
+  7. AWS WAF (Web Application Firewall) — on CloudFront
+     Purpose  : Restricts dashboard access to company network only
+     What it  : Blocks all access from outside the company's IP range
+     replaces : No equivalent in the current setup (currently unprotected)
+     Config   :
+       - IP Set         : company-office-ips (your company's public IP range)
+       - Rule           : ALLOW requests from company-office-ips
+       - Default action : BLOCK everything else
+     Result   : Anyone outside the office network gets a 403 Forbidden error
+
+  8. AWS IAM (Identity and Access Management) — supporting role
+     Purpose  : Controls what the Lambda function is allowed to do
+     Config   :
+       - Execution role : Auto-created with Lambda
+       - Policy added   : AmazonDynamoDBFullAccess
+     No direct user interaction needed — set up once and forgotten
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 4 — SIDE-BY-SIDE COMPARISON
+────────────────────────────────────────────────────────────────────────────────
+
+  FEATURE                  EXISTING (SUPABASE)           PROPOSED (AWS)
+  ─────────────────────────────────────────────────────────────────────────────
+  Hosting                  No hosting — local file       S3 + CloudFront (HTTPS URL)
+  Access URL               None (open file from disk)    Single shared HTTPS URL
+  Network restriction      None (anyone with file)       WAF — company IP only
+  Database                 Supabase PostgreSQL (ext.)    Amazon DynamoDB (internal)
+  Authentication           Supabase Auth (external)      Amazon Cognito (internal)
+  Role management          user_roles table in Supabase  Cognito Groups (admin/user)
+  Data location            Supabase servers (external)   Company AWS account
+  Real-time updates        Yes (Supabase websocket)      No — refresh to see updates
+  Session behaviour        sessionStorage, dies on close sessionStorage, dies on close
+  Admin creates users?     Yes (Supabase dashboard)      Yes (Cognito console)
+  Backend logic            Supabase built-in REST API    Lambda + API Gateway
+  Compliance risk          HIGH — external data store    LOW — all within AWS account
+  Monthly cost             Free tier (Supabase)          ~$0–$2 (all AWS free tier)
+  Internet dependency      YES — requires supabase.co    NO — internal AWS only
+  Update deployment        Reshare the HTML file         Upload new HTML to S3
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 5 — WHAT CHANGES IN THE HTML FILE
+────────────────────────────────────────────────────────────────────────────────
+
+The dashboard HTML file itself needs the following code changes.
+The look, feel, charts, and all functionality remain exactly the same.
+Only the data layer (how values are fetched and saved) changes.
+
+  REMOVED
+  -------
+  - Supabase JS SDK script tag (CDN import)
+  - Supabase client initialisation (createClient with URL + key)
+  - Supabase auth calls (signInWithPassword, signOut, getSession, onAuthStateChange)
+  - Supabase database calls (from, select, upsert)
+  - Supabase real-time channel subscription (postgres_changes listener)
+  - user_roles table lookup
+
+  ADDED
+  -----
+  - API_URL constant pointing to API Gateway endpoint
+  - COGNITO_URL + CLIENT_ID constants for Cognito
+  - Token helpers (store/read JWT from sessionStorage)
+  - getRoleFromToken() — reads admin/user group from JWT claims
+  - sbLoad() updated to fetch() from API Gateway GET /values
+  - sbSaveAll() updated to fetch() to API Gateway POST /values
+  - sbDoLogin() updated to call Cognito InitiateAuth API
+  - sbLogout() updated to clear sessionStorage tokens
+  - DOMContentLoaded updated to check sessionStorage for existing token
+
+  DATA SHAPE — NO CHANGE
+  -----------------------
+  The data returned by the API is identical in structure to what Supabase
+  returned. Every field ID, value, and text_value maps the same way.
+  No chart logic, KPI calculations, or UI code needs to change.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 6 — WHAT IS LOST IN THE MIGRATION
+────────────────────────────────────────────────────────────────────────────────
+
+  1. REAL-TIME AUTO-REFRESH
+     Currently: When admin saves, all users' screens update automatically.
+     After migration: Users need to manually refresh the browser tab to see
+     updated values. This is a minor UX change — can be mitigated by adding
+     a periodic auto-refresh (e.g. every 5 minutes) if the team requires it.
+
+  2. SUPABASE DASHBOARD
+     Currently: Admin can view/edit raw data in the Supabase web UI.
+     After migration: Data is in DynamoDB — viewable in the AWS Console under
+     DynamoDB → Tables → dashboard_values → Explore table items.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 7 — WHAT IS GAINED IN THE MIGRATION
+────────────────────────────────────────────────────────────────────────────────
+
+  1. COMPLIANCE — No external data dependency. All data stays in the company's
+                  own AWS account. Eliminates the escalation concern entirely.
+
+  2. CENTRAL HOSTING — One URL for everyone. No more distributing HTML files.
+                       Admin updates the S3 file, all users get the update
+                       on next page load automatically.
+
+  3. NETWORK SECURITY — WAF restricts access to company IP range only.
+                        Dashboard is invisible to anyone outside the office
+                        network or VPN.
+
+  4. HTTPS — Proper secure connection via CloudFront instead of opening a
+             local file.
+
+  5. USER MANAGEMENT — Cognito provides a proper user directory. Passwords
+                       can be reset, accounts can be disabled, MFA can be
+                       added — all via the AWS Console.
+
+  6. AUDIT TRAIL — DynamoDB and API Gateway both log all activity to
+                   CloudWatch (AWS logging) if needed for compliance.
+
+  7. SCALABILITY — AWS services scale automatically. No size limits relevant
+                   to this use case.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 8 — COST ESTIMATE
+────────────────────────────────────────────────────────────────────────────────
+
+  All six services used fall within AWS free tier limits for a small internal
+  team dashboard. Estimated monthly cost: $0 to $2.
+
+  Service          Free Tier Limit              Estimated Usage
+  ─────────────────────────────────────────────────────────────────────────────
+  S3               5 GB storage, 20K GETs       1 file, ~100 loads/day
+  CloudFront       1 TB transfer/month          Minimal internal traffic
+  Cognito          50,000 Monthly Active Users  Under 50 users
+  API Gateway      1,000,000 API calls/month    ~500 calls/day
+  Lambda           1,000,000 invocations/month  ~500 invocations/day
+  DynamoDB         25 GB, 200M requests/month   ~100 rows, minimal requests
+  ─────────────────────────────────────────────────────────────────────────────
+  TOTAL ESTIMATED                               $0 – $2 / month
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 9 — WHAT THE TEAM NEEDS TO DECIDE / DISCUSS
+────────────────────────────────────────────────────────────────────────────────
+
+  Q1. Do we have an existing AWS account we can use, or does one need to be
+      created / requested through IT?
+
+  Q2. Who will be the AWS account owner / admin responsible for setting up
+      and maintaining the services?
+
+  Q3. What is the company's public IP range for the WAF allowlist?
+      (Ask IT/networking team — needed to restrict dashboard to internal only)
+
+  Q4. Is the loss of real-time auto-refresh acceptable, or do we need to add
+      a periodic page auto-refresh (e.g. every 5 minutes)?
+
+  Q5. Which region should we deploy to? (Closest to the office for best speed)
+      Common choices:
+        - ap-south-1    (Mumbai — India)
+        - eu-west-1     (Ireland — Europe)
+        - us-east-1     (N. Virginia — US)
+
+  Q6. Who should have admin access to the dashboard?
+      (Names + email addresses for Cognito admin accounts)
+
+  Q7. Who should have read-only user access?
+      (Names + email addresses for Cognito user accounts)
+
+  Q8. Does the company require MFA (multi-factor authentication) for logins?
+      Cognito supports optional or mandatory MFA — requires company decision.
+
+  Q9. Should the CloudFront URL be mapped to a company subdomain?
+      e.g. dashboard.company.com instead of dXXXXX.cloudfront.net
+      (Requires a domain and Route 53 / DNS change — optional but cleaner)
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 10 — MIGRATION EFFORT ESTIMATE
+────────────────────────────────────────────────────────────────────────────────
+
+  AWS Setup (one-time)           : 2–4 hours (with the step-by-step guide)
+  HTML code changes              : 1–2 hours (straightforward replacements)
+  Testing                        : 1 hour
+  Total estimated effort         : 4–7 hours
+
+  The step-by-step configuration guide (Word document) covers every screen,
+  every field, and every code change required in full detail.
+
+
+────────────────────────────────────────────────────────────────────────────────
+  END OF DOCUMENT
+  IAM Performance Dashboard — Setup Comparison
+  Prepared for internal team discussion
+================================================================================
