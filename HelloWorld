@@ -1,4 +1,4 @@
-Existing Supa base query:
+huExisting Supa base query:
 -- ═══════════════════════════════════════════════════════════
 --  IAM Dashboard v2 — Supabase SQL Setup
 --  Run this in: Supabase → SQL Editor → New Query → Run
@@ -242,3 +242,10 @@ Total – ~2 weeks
 • Alerts trigger when thresholds are crossed
 • Notifications are sent to iamengineerind@empower.com
 • Monitoring setup validated and confirmed working
+
+
+Hi Simran,
+
+In the wAnywhere Dev environment, I can see the license capacity as 1000 and the total users as 732, as shown in the screenshot. Based on this, it appears that 268 licenses are available.
+
+Could you please confirm if this is correct?
