@@ -726,3 +726,33 @@ We will need to resolve this issue before proceeding with testing the new Dev Ag
 @Anubhab — please let us know when the latest Dev Agent will be available for testing.
 
 wAnywhere: Breach Screenshot Not Displaying in Dev Environment
+
+
+
+
+
+Hi Aditya,
+
+Even after increasing the memory, the cognitive-service pods continue to crash, typically ~3 hours after a manual restart.
+
+I understand that with the deployment of new cognitive service on Prod would improve server-side performance, but the deployment may take some time. However, we need to address this issue immediately as it is raising a compliance concern.
+
+
+From my observation of current node memory utilization (per node - 32 GB RAM):
+~10 GB used by OS + 7 system DaemonSet pods
+20 GB reserved for the cognitive pod
+Only ~2 GB actual free memory remaining
+
+Since the pod limit is 22 GB, it can burst 2 GB beyond the request, which quickly consumes the remaining headroom and results in OOMKill events.
+
+From the logs, it appears the cognitive pod may require ~25+ GB memory to handle the current inference workload. With the increasing number of users and requests, the current instance type (16 vCPU / 32 GB RAM) seems insufficient.
+
+Could you please share your thoughts on the following:
+
+Upgrading the node instances to m5.4xlarge (16 vCPU / 64 GB RAM) to provide sufficient memory headroom.
+
+Increasing replicas from 3 to 5/6 to better distribute the load.
+
+Whether the current wAnywhere servers can handle ~750–800 daily inference users.
+
+Please let me know your review.
