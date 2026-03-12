@@ -687,3 +687,19 @@ We are also observing that the container is exceeding its configured memory limi
 To stabilize the service, we need to increase the memory allocation for the cognitive-service pods. However, with the current instance type (c5.4xlarge), there would be no additional headroom available on the nodes to accommodate the increased memory requirement.
 
 To address this, we propose upgrading the node instances to m5.4xlarge (16 vCPU, 64 GB RAM), which would provide sufficient memory capacity and help prevent further pod crashes.
+
+
+
+
+
+
+
+Hi Team,
+
+I have received approval for the change ticket CH12345 from the Empower internal team to re-deploy the latest changes, which were previously rolled back due to concerns raised.
+
+The deployment window is 10:00 AM – 11:00 PM IST on Sunday.
+
+Simran and Aditya, please ensure the latest tags are ready so we can proceed with the deployment smoothly.
+
+Please let me know if anything is required from my end.
