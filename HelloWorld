@@ -703,3 +703,26 @@ The deployment window is 10:00 AM – 11:00 PM IST on Sunday.
 Simran and Aditya, please ensure the latest tags are ready so we can proceed with the deployment smoothly.
 
 Please let me know if anything is required from my end.
+
+
+
+
+
+
+
+
+
+
+
+
+Hi Aditya,
+
+When the new cognitive service was deployed, we were unable to test the service at that time as the Dev Agent was not available.
+
+After receiving the Dev Agent, Ankit and I tested the breach scenarios. The breach is being triggered and reported in the console, but the image/screenshot is not being displayed. After Anubhab investigated the agent logs, we found that some server-side configuration changes are required in the Dev environment. I believe Anubhab has already shared the relevant logs and screenshots with you.
+
+We will need to resolve this issue before proceeding with testing the new Dev Agent.
+
+@Anubhab — please let us know when the latest Dev Agent will be available for testing.
+
+wAnywhere: Breach Screenshot Not Displaying in Dev Environment
