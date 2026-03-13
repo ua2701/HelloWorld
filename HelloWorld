@@ -756,3 +756,9 @@ Increasing replicas from 3 to 5/6 to better distribute the load.
 Whether the current wAnywhere servers can handle ~750–800 daily inference users.
 
 Please let me know your review.
+
+
+
+reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v LocalAccountTokenFilterPolicy
+```
+
