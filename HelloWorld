@@ -835,8 +835,52 @@ Billing			: On-demand (pay per request)
 
 
 
-Apologies for the delayed response.
+sequenceDiagram
+    participant U as User
+    participant CF as CloudFront
+    participant S3 as S3
+    participant CG as Cognito
+    participant AG as API Gateway
+    participant LB as Lambda
+    participant DB as DynamoDB
 
-We have reviewed the server list and identified the PAM roles. Kindly review and confirm the same. We also require ServiceNow tickets to be raised for this.
+    Note over U,S3: Phase 1 — Page Load
+    U->>CF: HTTPS GET /
+    CF->>S3: GET index.html (OAC signed)
+    S3-->>CF: index.html
+    CF-->>U: index.html (HTTPS)
 
-Please share your availability tomorrow for a quick discussion.
+    Note over U,CG: Phase 2 — Login
+    U->>CG: POST email + password
+    alt Wrong credentials
+        CG-->>U: Error message
+    else Correct credentials
+        CG-->>U: JWT token (IdToken + RefreshToken)
+        U->>U: Save JWT to sessionStorage
+        U->>U: Decode JWT → read role (admin / user)
+    end
+
+    Note over U,DB: Phase 3 — Load Dashboard Data
+    U->>AG: GET /values + Authorization: JWT
+    AG->>LB: Invoke (event.httpMethod = GET)
+    LB->>DB: ScanCommand (all rows)
+    DB-->>LB: 46 rows
+    LB-->>AG: JSON array
+    AG-->>U: 200 OK + JSON
+    U->>U: Fill charts + KPI values
+
+    Note over U,DB: Phase 4 — Admin Saves (admin only)
+    U->>AG: POST /values + 46 rows + JWT
+    AG->>LB: Invoke (event.httpMethod = POST)
+    loop For each of 46 rows
+        LB->>DB: PutItemCommand (overwrite row)
+    end
+    DB-->>LB: OK
+    LB-->>AG: ok: true
+    AG-->>U: 200 OK
+    U->>U: Show toast — All values saved
+
+    Note over U: Phase 5 — Session End
+    U->>U: Tab closed → beforeunload fires
+    U->>U: clearTokens() → JWT removed
+    U->>U: Next visit → Login modal shown
