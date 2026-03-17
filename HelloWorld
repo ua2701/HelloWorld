@@ -760,5 +760,7 @@ Please let me know your review.
 
 
 reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v LocalAccountTokenFilterPolicy
+
+https://d3o88xrgg4bncz.cloudfront.net/
 ```
 
