@@ -764,3 +764,67 @@ reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v Loca
 https://d3o88xrgg4bncz.cloudfront.net/
 ```
 
+
+CloudFront-
+
+Origin		: Amazon S3
+OAC			: Private S3-only access
+Default root: index.html
+Protocol	: HTTP -> HTTPS redirect
+WAF			: Free tier rules
+URL			: xxxxxxxxx.cloudfront.net
+Depends on	: Amazon S3
+Called by	: Browser (HTTPS GET)
+
+Amazon S3-
+
+Bucket			: Amazon S3
+Public access	: BLOCKED
+Policy			: CloudFront OAC only
+Static hosting	: Enabled
+Index document	: index.html
+Called by		: CloudFront only (OAC)
+
+Cognito-
+
+Pool		: xxxxxxxx
+Client		: xxxxxxxxxxxxxxxxxxxx
+Flow		: ALLOW_USER_PASSWORD_AUTH, ALLOW_REFRESH_TOKEN_AUTH
+Client secret: Disabled
+Groups		: admin, user
+JWT claim	: cognito:groups:["admin"] or ["user"]
+Session lives in sessionStorage - clears on tab close.
+Called by	: Browser (direct POST to Cognito)
+
+
+API Gateway-
+
+Type		: REST API (Regional)
+Resource	: /values
+Methods		: GET, POST, OPTIONS
+Integration	: Lambda proxy
+CORS		: Access-Control-Allow-Origin:  *
+			  Access-Control-Allow-Headers: Content-Type, Authorization
+			  Access-Control-Allow-Methods: GET, POST, OPTIONS
+Depends on	: Lambda (invoked per request)
+Called by	: Browser (fetch() with JWT Authorization header)
+
+Lambda-
+
+Runtime		: Node.js 20.x function that runs only when invoked
+IAM			: AmazonDynamoDBFullAccess policy
+GET  -> ScanCommand
+POST -> PutItemCommand
+Depends on	:DynamoDB (read + write operations)
+Called by	:API Gateway (Lambda proxy invocation)
+
+DynamoDB-
+
+Partition key	: id (String)
+Rows			: 46 (KPIs, charts, header text)
+Depends on		: None
+Called by		: Lambda (ScanCommand, PutItemCommand)
+Billing			: On-demand (pay per request)
+
+
+
