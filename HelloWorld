@@ -884,3 +884,12 @@ sequenceDiagram
     U->>U: Tab closed → beforeunload fires
     U->>U: clearTokens() → JWT removed
     U->>U: Next visit → Login modal shown
+
+Hi Josh,
+
+I’m an engineer from James’ team working on the wAnywhere application. I wanted to check if you have any documentation or resources on Discern that could help us understand how it works and integrates with our setup.
+
+Any information you can share would be really helpful.
+
+Thanks,
+Usama
