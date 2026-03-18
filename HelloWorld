@@ -899,7 +899,66 @@ Just checking in on the alert setup, could you please share any updates?
 Also, when can we expect this to be completed?
 
 
+Subject: wAnywhere Breach Types & Camera-Related Configurations
 
+Hi [Name],
+
+As requested, below is a summary of the available breach types in wAnywhere and their current configurations:
+
+Available Breaches:
+
+Not at Desk
+
+Mobile Detected
+
+Unknown Person Detection
+
+Multiple Person Detection
+
+Camera Not Available
+
+Save Image Configuration:
+
+Enabled (no action required):
+
+Mobile Detected
+
+Unknown Person Detection
+
+Disabled:
+
+Multiple Person Detection: Not ideal for office environments, as it may generate false positives in shared or collaborative spaces.
+
+Not at Desk:
+
+Triggered when:
+
+User is not present in front of the camera
+
+Camera is covered or blocked
+
+This can be considered for enabling, as it helps detect scenarios like camera obstruction.
+
+Camera Not Available:
+
+Triggered when the agent cannot access or detect the camera (e.g., camera turned off, driver issue, or permission restriction).
+
+This breach is logged but does not support image capture, so enabling “Save Image” is not applicable here.
+
+Summary (for Javier’s question):
+
+Camera covered scenarios can be captured via the “Not at Desk” breach (if Save Image is enabled).
+
+Camera off/unavailable scenarios are handled via “Camera Not Available”, but only as a logged event (no screenshots).
+
+No additional breach types are currently available beyond the above.
+
+There are no technical blockers to enabling “Not at Desk” image capture, but enabling it should be evaluated based on potential false positives in an office setup.
+
+Please let me know if you’d like us to proceed with enabling any of these.
+
+Thanks,
+Usama
 Hi Kenneth,
 
 Regarding the pilot users for testing the new agent, do we have the list of users who will be involved? how do we plan to proceed with this?
