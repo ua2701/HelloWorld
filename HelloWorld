@@ -1,3 +1,12 @@
+
+kubectl exec -it user-app-745c4fff9d-tb474 -n microservices -- grep -r "s3Details" /app --include="*.js" -l
+
+kubectl exec -it user-app-745c4fff9d-tb474 -n microservices -- grep -r "s3Details" /app --include="*.js"
+
+kubectl logs user-app-745c4fff9d-tb474 -n microservices | findstr "s3"
+
+
+
 # Search for the script by a unique string inside each likely pod
 kubectl exec -it deploy/license-server-app -n microservices -- find / -name "*.js" | xargs grep -l "iam-engineering-wanywhere" 2>/dev/null
 
