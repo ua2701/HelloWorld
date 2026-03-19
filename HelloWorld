@@ -1,3 +1,12 @@
+# Search for the script by a unique string inside each likely pod
+kubectl exec -it deploy/license-server-app -n microservices -- find / -name "*.js" | xargs grep -l "iam-engineering-wanywhere" 2>/dev/null
+
+kubectl exec -it deploy/user-app -n microservices -- find / -name "*.js" | xargs grep -l "iam-engineering-wanywhere" 2>/dev/null
+
+kubectl exec -it deploy/admin-app -n microservices -- find / -name "*.js" | xargs grep -l "iam-engineering-wanywhere" 2>/dev/null
+
+
+
 huExisting Supa base query:
 -- ═══════════════════════════════════════════════════════════
 --  IAM Dashboard v2 — Supabase SQL Setup
