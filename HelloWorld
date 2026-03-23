@@ -1,4 +1,4 @@
-huExisting Supa base query:
+huhuExisting Supa base query:
 -- ═══════════════════════════════════════════════════════════
 --  IAM Dashboard v2 — Supabase SQL Setup
 --  Run this in: Supabase → SQL Editor → New Query → Run
@@ -582,4 +582,193 @@ Partition key	: id (String)
 Rows			: 46 (KPIs, charts, header text)
 Depends on		: None
 Called by		: Lambda (ScanCommand, PutItemCommand)
-Billing			: On-demand (pay per request)
+Billing			: On-Got it — you want **PAM role names aligned with your existing naming convention** (clean, consistent, IAM-friendly 👍).
+
+### 🔎 Observed Pattern
+
+From your sample roles, the format is mostly:
+
+```
+PAM-<Application/Service>-<Role Type>
+PAM-<Application/Service>-<Role Type>_Approvers
+```
+
+Where:
+
+* `<Application/Service>` = system/app name (VMware, UNIX, SAP, etc.)
+* `<Role Type>` = Admins / Users / DesktopAdministrators etc.
+* `_Approvers` = approval group
+
+---
+
+## ✅ Suggested PAM Role Names
+
+### 1. NQMetrix
+
+* `PAM-NQMetrix-NonProd-Users`
+* `PAM-NQMetrix-NonProd-Users_Approvers`
+* `PAM-NQMetrix-Prod-Users`
+* `PAM-NQMetrix-Prod-Users_Approvers`
+
+---
+
+### 2. NOMetrix (UAT)
+
+* `PAM-NOMetrix-UAT-Users`
+* `PAM-NOMetrix-UAT-Users_Approvers`
+
+---
+
+### 3. NOInvOps (Prod)
+
+* `PAM-NOInvOps-Prod-Admins`
+* `PAM-NOInvOps-Prod-Admins_Approvers`
+
+---
+
+### 4. NOFundingAdmin (Prod)
+
+* `PAM-NOFundingAdmin-Prod-Admins`
+* `PAM-NOFundingAdmin-Prod-Admins_Approvers`
+
+---
+
+### 5. DBTelus
+
+* `PAM-DBTelus-Prod-Users`
+* `PAM-DBTelus-Prod-Users_Approvers`
+* `PAM-DBTelus-NonProd-Users`
+* `PAM-DBTelus-NonProd-Users_Approvers`
+
+---
+
+## ⚡ Optional (If you want stricter standardization)
+
+If your org prefers clarity + scalability (recommended in IAM 👇):
+
+```
+PAM-<App>-<Env>-<AccessType>
+```
+
+Example:
+
+* `PAM-NQMetrix-Prod-Read`
+* `PAM-NQMetrix-Prod-Admin`
+* `PAM-DBTelus-NonProd-Write`
+
+---
+
+## 💡 IAM Best Practice (important for your domain)
+
+Since you're working in **IAM Engineering + PAM (BeyondTrust/Okta)**:
+
+* Keep **Env (Prod/NonProd/UAT)** always in name ✅
+* Avoid spaces (your org sometimes mixes — better to standardize)
+* Keep **Approvers separate role always**
+* Try to map **1 role = 1 access level**
+
+---
+
+If you want, I can:
+✅ Map these roles directly to **Okta groups / BeyondTrust roles**
+✅ Suggest **entitlement structure**
+✅ Or generate **bulk naming for 50+ apps automatically**
+
+Just tell me 👍
+demand (pay per request)
+
+
+
+Got it — you want **PAM role names aligned with your existing naming convention** (clean, consistent, IAM-friendly 👍).
+
+### 🔎 Observed Pattern
+
+From your sample roles, the format is mostly:
+
+```
+PAM-<Application/Service>-<Role Type>
+PAM-<Application/Service>-<Role Type>_Approvers
+```
+
+Where:
+
+* `<Application/Service>` = system/app name (VMware, UNIX, SAP, etc.)
+* `<Role Type>` = Admins / Users / DesktopAdministrators etc.
+* `_Approvers` = approval group
+
+---
+
+## ✅ Suggested PAM Role Names
+
+### 1. NQMetrix
+
+* `PAM-NQMetrix-NonProd-Users`
+* `PAM-NQMetrix-NonProd-Users_Approvers`
+* `PAM-NQMetrix-Prod-Users`
+* `PAM-NQMetrix-Prod-Users_Approvers`
+
+---
+
+### 2. NOMetrix (UAT)
+
+* `PAM-NOMetrix-UAT-Users`
+* `PAM-NOMetrix-UAT-Users_Approvers`
+
+---
+
+### 3. NOInvOps (Prod)
+
+* `PAM-NOInvOps-Prod-Admins`
+* `PAM-NOInvOps-Prod-Admins_Approvers`
+
+---
+
+### 4. NOFundingAdmin (Prod)
+
+* `PAM-NOFundingAdmin-Prod-Admins`
+* `PAM-NOFundingAdmin-Prod-Admins_Approvers`
+
+---
+
+### 5. DBTelus
+
+* `PAM-DBTelus-Prod-Users`
+* `PAM-DBTelus-Prod-Users_Approvers`
+* `PAM-DBTelus-NonProd-Users`
+* `PAM-DBTelus-NonProd-Users_Approvers`
+
+---
+
+## ⚡ Optional (If you want stricter standardization)
+
+If your org prefers clarity + scalability (recommended in IAM 👇):
+
+```
+PAM-<App>-<Env>-<AccessType>
+```
+
+Example:
+
+* `PAM-NQMetrix-Prod-Read`
+* `PAM-NQMetrix-Prod-Admin`
+* `PAM-DBTelus-NonProd-Write`
+
+---
+
+## 💡 IAM Best Practice (important for your domain)
+
+Since you're working in **IAM Engineering + PAM (BeyondTrust/Okta)**:
+
+* Keep **Env (Prod/NonProd/UAT)** always in name ✅
+* Avoid spaces (your org sometimes mixes — better to standardize)
+* Keep **Approvers separate role always**
+* Try to map **1 role = 1 access level**
+
+---
+
+If you want, I can:
+✅ Map these roles directly to **Okta groups / BeyondTrust roles**
+✅ Suggest **entitlement structure**
+✅ Or generate **bulk naming for 50+ apps automatically**
+
+Just tell me 👍
