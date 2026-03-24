@@ -794,3 +794,10 @@ If you want, I can also give you **2–3 slightly more professional or shorter v
 
 Hi, we have not yet received the new Prod agent from Shephertz. Once we receive it, we will share the build with your team so it can be installed on the CPC for testing.
 
+
+
+I have enabled Save Image for “Not at Desk” and set the action to OS Lock.
+
+Simran mentioned that instead of running the script directly on the server, they will provide an API to trigger the scheduler job, where we need to pass the CSV data.
+
+She is currently reviewing the existing job. Once she finishes, she will also explain how to run it from the server, although it’s not recommended.
