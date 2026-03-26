@@ -806,3 +806,6 @@ She is currently reviewing the existing job. Once she finishes, she will also ex
 reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LmCompatibilityLevel
 
 Get-SmbServerConfiguration | Select-Object RequireSecuritySignature, EnableSecuritySignature
+
+
+I removed myself from the Monitored group today. Currently, to resolve the PH users’ CloudPC slowness issue, I believe John has made some changes in the Intune policy to reboot the CloudPCs of users in that group. Since I am also in the group, my CloudPC has been rebooting every day, which closes all my open tabs and applications. I have to reopen everything again, and any unsaved work gets lost.
