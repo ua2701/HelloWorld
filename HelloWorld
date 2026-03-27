@@ -1,3 +1,9 @@
+UPDATE AppConfig SET 
+  UserLoggingOutFlag = false,
+  AppKilledFlag = true
+WHERE UserName = "jrwmsl"
+
+
 huhuExisting Supa base query:
 -- ═══════════════════════════════════════════════════════════
 --  IAM Dashboard v2 — Supabase SQL Setup
