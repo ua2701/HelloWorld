@@ -839,4 +839,51 @@ reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LmCompatibilityLevel
 Get-SmbServerConfiguration | Select-Object RequireSecuritySignature, EnableSecuritySignature
 
 
+
+
+
+
+
+The Problem is Clear — AWS IAM Permission Denied
+The pod's IAM role does not have permission to access the prod S3 bucket.
+AccessDenied: assumed-role/EST-ESTDEVUSE1-EKS-SERVER-ROLES-Microservices 
+is not authorized to perform: s3:ListBucket on 
+"arn:aws:s3:::iam-engineering-wanywhere"
+
+Root Cause
+Looking at s3.js, there are two buckets defined:
+javascript// dev/nonprod  ← commented out
+// const bucketName = 'iam-engineering-wanywhere-nonprod';
+
+// prod  ← currently active
+const bucketName = 'iam-engineering-wanywhere';
+Your pod is running in nonprod account (676206940405) but trying to access the prod S3 bucket — the nonprod IAM role has no access to it.
+
+You Have Two Options
+Option 1 — Switch to the nonprod bucket (Quick Fix)
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- sed -i "s|const bucketName = 'iam-engineering-wanywhere';|const bucketName = 'iam-engineering-wanywhere-nonprod';|g" services/s3.js
+Verify the change:
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- grep "bucketName" services/s3.js
+Then trigger again:
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- node -e "const mongoose = require('mongoose'); const db = require('./configs/db'); mongoose.connect(db.database, db.options).then(() => { console.log('MongoDB connected'); return require('./services/s3').s3Details(); }).catch(err => { console.error('Connection error:', err); });"
+
+Option 2 — Get IAM Policy Updated (Permanent Fix)
+You need your AWS/DevOps team to add this permission to the role EST-ESTDEVUSE1-EKS-SERVER-ROLES-Microservices:
+json{
+  "Effect": "Allow",
+  "Action": [
+    "s3:ListBucket",
+    "s3:GetObject"
+  ],
+  "Resource": [
+    "arn:aws:s3:::iam-engineering-wanywhere",
+    "arn:aws:s3:::iam-engineering-wanywhere/*"
+  ]
+}
+
+Which to choose?
+OptionWhen to useOption 1 (nonprod bucket)If this is a test/dev environment and the nonprod bucket has the CSVOption 2 (IAM fix)If you need prod data — raise a ticket with your AWS team
+Which environment is this — prod or nonprod?
+
+
 I removed myself from the Monitored group today. Currently, to resolve the PH users’ CloudPC slowness issue, I believe John has made some changes in the Intune policy to reboot the CloudPCs of users in that group. Since I am also in the group, my CloudPC has been rebooting every day, which closes all my open tabs and applications. I have to reopen everything again, and any unsaved work gets lost.
