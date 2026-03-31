@@ -3,6 +3,28 @@ UPDATE AppConfig SET
   AppKilledFlag = true
 WHERE UserName = "jrwmsl"
 
+# Existing lines
+$AUXException = get-adgroupmember 'SG_SSO_wAnywhere_AuxException'
+# ... (managers fetched below) ...
+$AUXException += $managers
+
+# ADD this line right after the AUXException block
+$InOffice = get-adgroupmember 'SG_SSO_wAnywhere_InOffice'
+
+If ($puser.distinguishedname -in $AUXException.distinguishedname) {
+    $Dept = 'AUX Exception'
+} else {
+    $Dept = $Harr[3].SubString(3,$Harr[3].Length-3)
+}
+
+If ($puser.distinguishedname -in $AUXException.distinguishedname) {
+    $Dept = 'AUX Exception'
+} elseif ($puser.distinguishedname -in $InOffice.distinguishedname) {
+    $Dept = 'In Office'
+} else {
+    $Dept = $Harr[3].SubString(3,$Harr[3].Length-3)
+}
+
 
 huhuExisting Supa base query:
 -- ═══════════════════════════════════════════════════════════
