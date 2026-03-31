@@ -25,6 +25,9 @@ If ($puser.distinguishedname -in $AUXException.distinguishedname) {
     $Dept = $Harr[3].SubString(3,$Harr[3].Length-3)
 }
 
+kubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- node -e "const mongoose = require('mongoose'); const db = require('./configs/db'); mongoose.connect(db.database, db.options).then(() => { console.log('MongoDB connected'); return require('./services/s3').s3Details(); }).catch(err => { console.error('Connection error:', err); });"
+
+
 
 huhuExisting Supa base query:
 -- ═══════════════════════════════════════════════════════════
