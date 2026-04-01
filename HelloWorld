@@ -3,6 +3,24 @@ UPDATE AppConfig SET
   AppKilledFlag = true
 WHERE UserName = "jrwmsl"
 
+
+I need just 3 things from you:
+
+1 — Check your app.js (how routes are registered)
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- cat configs/app.js
+
+2 — Check if multer is already installed
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- node -e "require('multer'); console.log('multer exists')"
+
+3 — Check your existing routes folder
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- ls
+Then if routes folder exists:
+bashkubectl exec -it operation-maintenance-app-6b7747549d-mpjdb -n microservices -- ls routes/
+
+Share these 3 outputs and I'll give you the exact commands to create the files and register the route — ready to use immediately.
+
+
+
 # Existing lines
 $AUXException = get-adgroupmember 'SG_SSO_wAnywhere_AuxException'
 # ... (managers fetched below) ...
