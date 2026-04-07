@@ -4,6 +4,8 @@ UPDATE AppConfig SET
 WHERE UserName = "jrwmsl"
 
 
+
+
 I need just 3 things from you:
 
 1 — Check your app.js (how routes are registered)
@@ -902,6 +904,11 @@ json{
 Which to choose?
 OptionWhen to useOption 1 (nonprod bucket)If this is a test/dev environment and the nonprod bucket has the CSVOption 2 (IAM fix)If you need prod data — raise a ticket with your AWS team
 Which environment is this — prod or nonprod?
+
+Yes, you are correct. The user’s Extension Attribute 8 currently shows as NotInWD. Until it gets updated with the actual hierarchy from Workday, the user will not be provisioned to the users group by automation. If we manually add the user today, they will likely be removed by the automation tomorrow.
+
+But this would not be the same case for users who should be put in monitored group if they are manually added to the users group they will not be removed he user does not need to be placed in the monitored group since the manager is from the Philippines
+
 
 
 I removed myself from the Monitored group today. Currently, to resolve the PH users’ CloudPC slowness issue, I believe John has made some changes in the Intune policy to reboot the CloudPCs of users in that group. Since I am also in the group, my CloudPC has been rebooting every day, which closes all my open tabs and applications. I have to reopen everything again, and any unsaved work gets lost.
