@@ -1,3 +1,5 @@
+
+
 UPDATE AppConfig SET 
   UserLoggingOutFlag = false,
   AppKilledFlag = true
@@ -911,4 +913,83 @@ But this would not be the same case for users who should be put in monitored gro
 
 
 
+
+
+
 I removed myself from the Monitored group today. Currently, to resolve the PH users’ CloudPC slowness issue, I believe John has made some changes in the Intune policy to reboot the CloudPCs of users in that group. Since I am also in the group, my CloudPC has been rebooting every day, which closes all my open tabs and applications. I have to reopen everything again, and any unsaved work gets lost.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import csv
+import requests
+
+# ── Config ──────────────────────────────────────────────────────────────────
+
+MAIN_USERS_CSV   = "users.csv"          # the actual users file sent to the API
+DEPT_UPDATES_CSV = "dept_updates.csv"   # userID + new Dept values
+
+API_URL = "https://wanywhereapi.entsectools-dev.aws.gwl.com/orguser/upload-users"
+# API_URL = "https://wanywhereapi.empower.com/orguser/upload-users"  # prod
+
+# ── Step 1: Read the department updates (userID → new Dept) ─────────────────
+
+dept_updates = {}
+
+with open(DEPT_UPDATES_CSV, newline="") as f:
+    for row in csv.DictReader(f, delimiter="\t"):
+        dept_updates[row["userID"]] = row["Dept"]
+
+print(f"Loaded {len(dept_updates)} department update(s).")
+
+# ── Step 2: Update Dept in the main users CSV ────────────────────────────────
+
+updated_rows = []
+updated_count = 0
+
+with open(MAIN_USERS_CSV, newline="") as f:
+    reader = csv.DictReader(f, delimiter="\t")
+    column_names = reader.fieldnames
+
+    for row in reader:
+        user_id = row["UID"]
+
+        if user_id in dept_updates:
+            old_dept = row["Dept"]
+            row["Dept"] = dept_updates[user_id]
+            print(f"  {user_id}: '{old_dept}' → '{row['Dept']}'")
+            updated_count += 1
+
+        updated_rows.append(row)
+
+print(f"\n{updated_count} user(s) updated.")
+
+# ── Step 3: Save the updated rows back to the same file ─────────────────────
+
+with open(MAIN_USERS_CSV, "w", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=column_names, delimiter="\t")
+    writer.writeheader()
+    writer.writerows(updated_rows)
+
+print(f"Saved changes to '{MAIN_USERS_CSV}'.")
+
+# ── Step 4: Upload the updated file to the API ───────────────────────────────
+
+with open(MAIN_USERS_CSV, "rb") as f:
+    response = requests.post(API_URL, files={"file": f})
+
+if response.ok:
+    print(f"\nUpload successful! API response: {response.json()}")
+else:
+    print(f"\nUpload failed! Status: {response.status_code} | {response.text}")
