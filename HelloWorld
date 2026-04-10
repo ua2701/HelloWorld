@@ -993,3 +993,81 @@ if response.ok:
     print(f"\nUpload successful! API response: {response.json()}")
 else:
     print(f"\nUpload failed! Status: {response.status_code} | {response.text}")
+
+
+
+
+
+
+Geo-Location Based Policy Enforcement for wAnywhere
+Step 1 — User Logs into Cloud PC
+A user logs into their Cloud PC from their physical PC.
+The wAnywhere agent is already installed on the Cloud PC.
+At login, a default monitoring policy is applied until the user location is determined.
+Step 2 — Entra ID Captures Login Information
+When the user logs in, Microsoft Entra ID generates sign-in logs.
+These logs contain details such as:
+User ID
+Login timestamp
+Source IP Address
+
+Empower will use these logs to determine the user's location.
+
+Step 3 — Empower Automation Script
+
+Empower will build an automation script that runs whenever login logs are available.
+
+The script will:
+
+Read Entra ID sign-in logs
+Extract login details for each user
+Capture the IP address
+Determine location by checking the IP against corporate network ranges.
+
+Logic example:
+
+If IP belongs to corporate network → WFO (Work From Office)
+If IP belongs to external/public network → WFH (Work From Home)
+Step 4 — Send Location to wAnywhere API
+
+Once the location is identified, the automation will call the ShepHertz wAnywhere API.
+
+Example:
+
+POST /api/user/location
+{
+  "user": "john.doe",
+  "ip": "10.12.45.32",
+  "location": "Office"
+}
+
+This updates the user location in the wAnywhere backend.
+
+Step 5 — wAnywhere Applies Policy
+
+The wAnywhere backend updates the monitoring policy based on the user's location.
+
+If User is in Office (WFO)
+
+Disable certain detections to avoid false positives:
+
+Multiple Person Detection → Disabled
+Not At Desk Detection → Disabled
+If User is WFH
+
+Enable stricter monitoring:
+
+Multiple Person Detection → Enabled
+Not At Desk Detection → Enabled
+Flow Summary
+User logs into Cloud PC
+        ↓
+Entra ID generates login logs
+        ↓
+Empower automation reads logs
+        ↓
+Extract IP and determine location
+        ↓
+Send location to wAnywhere API
+        ↓
+wAnywhere updates monitoring policy
