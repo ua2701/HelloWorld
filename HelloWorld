@@ -1071,3 +1071,72 @@ Extract IP and determine location
 Send location to wAnywhere API
         ↓
 wAnywhere updates monitoring policy
+
+
+
+
+
+
+
+function Get-ADUserDomain {
+    param ($fDN)
+    switch -Wildcard ($fDN) {
+        '*DC=ind*' {'ind'}
+        '*DC=its*' {'its'}
+        '*DC=fss*' {'fss'}
+    }
+}
+
+$USMgrGrp = 'CN=SG_SSO_nonPH_Mgrs_with_PH_Users,OU=IAM,OU=IND Domain Groups,DC=ind,DC=corp,DC=gwl,DC=com'
+
+Write-Host "Reading non-PH Managers group..." -ForegroundColor Cyan
+$GroupMembers = Get-ADGroupMember -Identity $USMgrGrp
+Write-Host "Total members in group: $($GroupMembers.Count)"
+Write-Host "----------------------------------------"
+
+$PHCount = 0
+
+foreach ($member in $GroupMembers) {
+    $domain = Get-ADUserDomain $member.distinguishedName
+    try {
+        $user = Get-ADUser -Identity $member.distinguishedName `
+                           -Server $domain `
+                           -Properties DisplayName, Country, co, Mail
+
+        if ($user.Country -eq 'PH' -or $user.co -eq 'Philippines') {
+            Write-Host "UID      : $($user.SamAccountName)" -ForegroundColor Red
+            Write-Host "Name     : $($user.DisplayName)"
+            Write-Host "Country  : $($user.Country) | $($user.co)"
+            Write-Host "Email    : $($user.Mail)"
+            Write-Host "----------------------------------------"
+            $PHCount++
+        }
+    } catch {
+        Write-Host "Error fetching: $($member.SamAccountName) - $_" -ForegroundColor Yellow
+    }
+}
+
+Write-Host "PH Managers found: $PHCount" -ForegroundColor $(if ($PHCount -gt 0) {'Red'} else {'Green'})
+
+
+
+--------------------------------------
+
+# CURRENT CODE (Broken) ❌
+$sup = Get-Aduser $mgr.manager -server $domain `
+       -Properties mail, givenname, sn, extensionAttribute8, manager
+
+$USMgrs += $sup.DistinguishedName   # Blindly adds ANY manager
+
+
+# FIXED CODE ✅
+$sup = Get-Aduser $mgr.manager -server $domain `
+       -Properties mail, givenname, sn, extensionAttribute8, manager, Country
+
+if ($sup.Country -ne 'PH') {
+    # Manager is outside PH → correctly add to nonPH_Mgrs group
+    $USMgrs += $sup.DistinguishedName
+} else {
+    # Manager is PH based → skip and warn
+    $log += "WARNING: PH Manager $($sup.SamAccountName) skipped from nonPH_Mgrs group"
+}
