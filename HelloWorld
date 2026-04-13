@@ -1201,3 +1201,61 @@ Write-Host ""
 Write-Host "Total Monitored users with a PH Manager: $PHMgrCount" -ForegroundColor $(if ($PHMgrCount -gt 0) {'Red'} else {'Green'})
 
 Get-ADGroup -Filter {Name -like '*wAnywhere*Monitored*'} -Server 'its' | Select Name, DistinguishedName
+
+
+
+
+
+# Discrepancy Check 4d: PH Employees in Monitored group with a PH Manager (should be removed)
+$LogMessages += -join($Q, '-> PH Employee reporting to PH Manager and present in SG_SSO_wAnywhere_Monitored group (to be removed)')
+$ShouldBeRemovedCount = 0
+
+foreach ($mon in $wAnywhereMonitored) {
+    $domain = Get-ADUserDomain $mon.distinguishedName
+    try {
+        $monUser = Get-ADUser -Identity $mon.distinguishedName `
+                              -Server $domain `
+                              -Properties extensionAttribute1, Country, co, Manager, DisplayName, Mail
+
+        $ea1     = if ($monUser.extensionAttribute1) { $monUser.extensionAttribute1.ToString().Trim() } else { $null }
+        $country = if ($monUser.Country) { $monUser.Country.ToString().Trim() } else { $null }
+
+        # Only check PH Employees
+        if ($ea1 -ne 'Employee' -or $country -ne 'PH') { continue }
+        if (-not $monUser.Manager) { continue }
+
+        # Get manager — use cache if available
+        $mgrUser = $null
+        if ($ManagerCache.ContainsKey($monUser.Manager)) {
+            $mgrUser = $ManagerCache[$monUser.Manager]
+        } else {
+            try {
+                $mgrDomain = Get-ADUserDomain $monUser.Manager
+                $mgrUser   = Get-ADUser -Identity $monUser.Manager `
+                                        -Server $mgrDomain `
+                                        -Properties DisplayName, SamAccountName, Country, co, Mail
+                $ManagerCache[$monUser.Manager] = $mgrUser
+            } catch {
+                $LogMessages += -join($Q, $Q, '-> Error fetching manager for: ', $mon.SamAccountName)
+                continue
+            }
+        }
+
+        if ($mgrUser -and ($mgrUser.Country -eq 'PH' -or $mgrUser.co -eq 'Philippines')) {
+            $DiscrepancyLine = 'PH Employee with PH Manager in Monitored group (to be removed),0,' + `
+                               $monUser.SamAccountName + ',' + $monUser.Mail + ',PH,' + $mgrUser.SamAccountName
+            $Discrepancies += $DiscrepancyLine
+            $ShouldBeRemovedCount++
+            $LogMessages += -join($Q, $Q, '-> Id: ', $monUser.SamAccountName, `
+                                  $Q, '| Manager: ',         $mgrUser.SamAccountName, `
+                                  $Q, '| Manager_Country: ', $mgrUser.Country)
+        }
+
+    } catch {
+        $LogMessages += -join($Q, $Q, '-> Error fetching user: ', $mon.SamAccountName)
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $ShouldBeRemovedCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
