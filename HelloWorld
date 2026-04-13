@@ -1199,3 +1199,5 @@ foreach ($member in $GroupMembers) {
 
 Write-Host ""
 Write-Host "Total Monitored users with a PH Manager: $PHMgrCount" -ForegroundColor $(if ($PHMgrCount -gt 0) {'Red'} else {'Green'})
+
+Get-ADGroup -Filter {Name -like '*wAnywhere*Monitored*'} -Server 'its' | Select Name, DistinguishedName
