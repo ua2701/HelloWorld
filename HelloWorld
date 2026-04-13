@@ -1259,3 +1259,83 @@ foreach ($mon in $wAnywhereMonitored) {
 $LogMessages += -join($Q, $Q, '-> ', $ShouldBeRemovedCount)
 $LogMessages += '---------------------------------------------------------------------------------------'
 $LogMessages += ""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Discrepancy Check 4d: PH Employee AND PH NON-EMP reporting to PH Manager and present in SG_SSO_wAnywhere_Monitored group (to be removed)
+$LogMessages += -join($Q, '-> PH Employee and PH NON-EMP reporting to PH Manager and present in SG_SSO_wAnywhere_Monitored group (to be removed)')
+$ShouldBeRemovedCount = 0
+
+foreach ($mon in $wAnywhereMonitored) {
+    $domain = Get-ADUserDomain $mon.distinguishedName
+    try {
+        $monUser = Get-ADUser -Identity $mon.distinguishedName `
+                              -Server $domain `
+                              -Properties extensionAttribute1, Country, co, Manager, DisplayName, Mail
+
+        $ea1     = if ($monUser.extensionAttribute1) { $monUser.extensionAttribute1.ToString().Trim() } else { $null }
+        $country = if ($monUser.Country) { $monUser.Country.ToString().Trim() } else { $null }
+
+        # Only check PH Employee OR PH NON-EMP (Contractor / Temp User)
+        $isEmployee = ($ea1 -eq 'Employee')
+        $isNonEmp   = ($ea1 -in @('Contractor', 'Temp User'))
+
+        if (-not ($isEmployee -or $isNonEmp)) { continue }  # Skip Admins, Auditors etc
+        if ($country -ne 'PH') { continue }                 # Skip non-PH users
+        if (-not $monUser.Manager) { continue }             # Skip if no manager assigned
+
+        # Get manager — use cache if available
+        $mgrUser = $null
+        if ($ManagerCache.ContainsKey($monUser.Manager)) {
+            $mgrUser = $ManagerCache[$monUser.Manager]
+        } else {
+            try {
+                $mgrDomain = Get-ADUserDomain $monUser.Manager
+                $mgrUser   = Get-ADUser -Identity $monUser.Manager `
+                                        -Server $mgrDomain `
+                                        -Properties DisplayName, SamAccountName, Country, co, Mail
+                $ManagerCache[$monUser.Manager] = $mgrUser  # Add to cache
+            } catch {
+                $LogMessages += -join($Q, $Q, '-> Error fetching manager for: ', $mon.SamAccountName)
+                continue
+            }
+        }
+
+        if ($mgrUser -and ($mgrUser.Country -eq 'PH' -or $mgrUser.co -eq 'Philippines')) {
+
+            # Label the worker type clearly in the discrepancy
+            $workerType = if ($isEmployee) { 'PH Employee' } else { 'PH NON-EMP' }
+
+            $DiscrepancyLine = $workerType + ' with PH Manager in Monitored group (to be removed),0,' + `
+                               $monUser.SamAccountName + ',' + $monUser.Mail + ',PH,' + $mgrUser.SamAccountName
+            $Discrepancies += $DiscrepancyLine
+            $ShouldBeRemovedCount++
+            $LogMessages += -join($Q, $Q, '-> Id: ',             $monUser.SamAccountName, `
+                                  $Q, '| Type: ',                $workerType, `
+                                  $Q, '| Manager: ',             $mgrUser.SamAccountName, `
+                                  $Q, '| Manager_Country: ',     $mgrUser.Country)
+        }
+
+    } catch {
+        $LogMessages += -join($Q, $Q, '-> Error fetching user: ', $mon.SamAccountName)
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $ShouldBeRemovedCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
