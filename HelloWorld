@@ -1140,3 +1140,62 @@ if ($sup.Country -ne 'PH') {
     # Manager is PH based → skip and warn
     $log += "WARNING: PH Manager $($sup.SamAccountName) skipped from nonPH_Mgrs group"
 }
+
+
+function Get-ADUserDomain {
+    param ($fDN)
+    switch -Wildcard ($fDN) {
+        '*DC=ind*' {'ind'}
+        '*DC=its*' {'its'}
+        '*DC=fss*' {'fss'}
+    }
+}
+
+$MonitoredGrp = 'CN=SG_SSO_wAnywhere_Monitored,OU=Test,OU=OIM Requestable,OU=ITS Domain Groups,DC=its,DC=corp,DC=gwl,DC=com'
+
+Write-Host "Reading Monitored group..." -ForegroundColor Cyan
+$GroupMembers = Get-ADGroupMember -Identity $MonitoredGrp -Server 'its'
+Write-Host "Total members in group: $($GroupMembers.Count)"
+Write-Host "----------------------------------------"
+
+$PHMgrCount = 0
+
+foreach ($member in $GroupMembers) {
+    $domain = Get-ADUserDomain $member.distinguishedName
+    try {
+        $user = Get-ADUser -Identity $member.distinguishedName `
+                           -Server $domain `
+                           -Properties DisplayName, Country, co, Mail, Manager
+
+        # Skip if no manager assigned
+        if (-not $user.Manager) { continue }
+
+        # Get manager details
+        $mgrDomain = Get-ADUserDomain $user.Manager
+        try {
+            $manager = Get-ADUser -Identity $user.Manager `
+                                  -Server $mgrDomain `
+                                  -Properties DisplayName, Country, co, Mail
+
+            if ($manager.Country -eq 'PH' -or $manager.co -eq 'Philippines') {
+                Write-Host "User UID     : $($user.SamAccountName)" -ForegroundColor Yellow
+                Write-Host "User Name    : $($user.DisplayName)"
+                Write-Host "User Country : $($user.Country)"
+                Write-Host "Manager UID  : $($manager.SamAccountName)" -ForegroundColor Red
+                Write-Host "Manager Name : $($manager.DisplayName)"
+                Write-Host "Manager Cntry: $($manager.Country) | $($manager.co)"
+                Write-Host "Manager Email: $($manager.Mail)"
+                Write-Host "----------------------------------------"
+                $PHMgrCount++
+            }
+        } catch {
+            Write-Host "Error fetching manager for: $($user.SamAccountName) - $_" -ForegroundColor Yellow
+        }
+
+    } catch {
+        Write-Host "Error fetching user: $($member.SamAccountName) - $_" -ForegroundColor Yellow
+    }
+}
+
+Write-Host ""
+Write-Host "Total Monitored users with a PH Manager: $PHMgrCount" -ForegroundColor $(if ($PHMgrCount -gt 0) {'Red'} else {'Green'})
