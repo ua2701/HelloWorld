@@ -2181,3 +2181,31 @@ UI Rendering
    ├── Risk indicators
    └── Approval insights
 
+
+
+
+
+Hi [Name],
+
+For our hackathon project, we’re planning to add a chatbot feature to the UI and were considering using ChatGPT for this.
+
+Would it be possible to get access to an OpenAI API key (with GPT-4o-mini) for development? Also, please let us know if this would be a suitable approach or if you’d recommend any alternative options.
+
+If there are any preferred tools or internal solutions we should use instead, we’d be happy to follow those.
+
+Thanks in advance!
+
+
+
+Hi [Name],
+
+For our hackathon project, we’re planning to add an AI-powered chatbot to the UI for access request recommendations. We’re thinking of using **Amazon Bedrock** as the AI layer.
+
+The idea is to capture user input in the UI, send it via API Gateway → Lambda, enrich it with a structured prompt (role catalog + least-privilege rules), and use a Bedrock model (like Nova Lite) to generate a JSON response with suggested roles and context, which we render back in the UI.
+
+Since this is just for the hackathon, we’ll be using dummy data and simulated roles (no real integrations).
+
+Does this approach look good from your perspective? Would you recommend going ahead with Bedrock, or suggest any alternatives?
+
+Would really appreciate your guidance 🙂
+
