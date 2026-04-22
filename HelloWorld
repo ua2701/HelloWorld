@@ -2130,3 +2130,54 @@ Just tell me 👍
 
 
 
+
+USER (React UI)
+   │
+   │ types request
+   ▼
+Frontend (AccessChatbot.jsx)
+   │
+   │ fetch(API Gateway)
+   ▼
+API Gateway
+   │
+   │ routes request
+   ▼
+AWS Lambda (Python)
+   │
+   ├── Parse request
+   ├── Extract user input
+   ├── Inject SYSTEM PROMPT
+   │
+   ▼
+Amazon Bedrock (Nova Lite)
+   │
+   ├── Understand intent
+   ├── Apply IAM rules
+   ├── Map → roles
+   ├── Generate JSON response
+   │
+   ▼
+Lambda
+   │
+   ├── Parse AI output
+   ├── Handle errors
+   │
+   ▼
+API Gateway
+   │
+   ▼
+Frontend
+   │
+   ├── Parse response.body
+   ├── Apply new joiner logic
+   ├── Map roles
+   │
+   ▼
+UI Rendering
+   │
+   ├── Chat message
+   ├── Role cards
+   ├── Risk indicators
+   └── Approval insights
+
