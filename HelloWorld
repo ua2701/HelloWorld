@@ -2197,16 +2197,30 @@ Thanks in advance!
 
 
 
-Hi [Name],
+foreach ($Manager in $PHManilaManagers) {
+    $AllDirectReportsEmp = @()
+    if ($DirectReportsByManager.ContainsKey($Manager.Worker)) {
+        $AllDirectReportsEmp = $DirectReportsByManager[$Manager.Worker]
+    }
+    
+    $AllDirectReportsNonEmp = @()
+    if ($NonEmpDirectReportsByManager.ContainsKey($Manager.User_Name)) {
+        $AllDirectReportsNonEmp = $NonEmpDirectReportsByManager[$Manager.User_Name]
+    }
+    
+    $totalReports = $AllDirectReportsEmp.Count + $AllDirectReportsNonEmp.Count
+    $NonPHReportsEmp = $AllDirectReportsEmp | Where-Object {$_.location -ne 'PH Manila'}
 
-For our hackathon project, we’re planning to add an AI-powered chatbot to the UI for access request recommendations. We’re thinking of using **Amazon Bedrock** as the AI layer.
+    # Condition: no direct reports at all, OR all reports are PH
+    $allReportsPH = ($totalReports -eq 0) -or 
+                    ($NonPHReportsEmp.Count -eq 0 -and ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0))
 
-The idea is to capture user input in the UI, send it via API Gateway → Lambda, enrich it with a structured prompt (role catalog + least-privilege rules), and use a Bedrock model (like Nova Lite) to generate a JSON response with suggested roles and context, which we render back in the UI.
-
-Since this is just for the hackathon, we’ll be using dummy data and simulated roles (no real integrations).
-
-Does this approach look good from your perspective? Would you recommend going ahead with Bedrock, or suggest any alternatives?
-
-Would really appreciate your guidance 🙂
-
-It was mentioned on the Hackathon site that you’re the point of contact for AI and AWS-related queries. I wanted to get your guidance on an approach we’re planning
+    if ($allReportsPH) {
+        if (-not $wAnywhereManagerNames.ContainsKey($Manager.User_Name)) {
+            $DiscrepancyLine = 'Manager with all PH reports not in Managers group,' + $Manager.isManager + ',' + $Manager.User_Name + ',' + $Manager.primaryWorkEmail + ',' + $Manager.location + ',' + $Manager.Worker_s_Manager
+            $Discrepancies += $DiscrepancyLine
+            $MissingManagerCount++
+            $LogMessages += -join($Q, '-> Id: ', $Manager.User_Name, $Q, '| DRs: ', $AllDirectReportsEmp.Count, ' PH Employee, ', $AllDirectReportsNonEmp.Count, ' PH NON-EMP')
+        }
+    }
+}
