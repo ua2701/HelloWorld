@@ -2225,3 +2225,722 @@ foreach ($Manager in $PHManilaManagers) {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+WAnywhereDiscrepancy.ps1:
+
+function Get-ADUserDomain {
+    param ($fDN)
+    switch -Wildcard ($fDN) {
+        '*DC=ind*' {'ind'}
+        '*DC=its*' {'its'}
+        '*DC=fss*' {'fss'}
+    }
+}
+
+$Q = [char]9
+$Discrepancies = @('Discrepancy,IsManager,User_Name,primaryWorkEmail,location,Worker_s_Manager')
+$LogMessages = @()
+
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+$LogMessages += $timestamp
+$LogMessages += ""
+
+#Manager names (for identifying EXL non-employees)
+#$EXLManagers = @('Sellar, James', 'Mieras, Joseph')
+$EXLManagers = @('James Sellar', 'Joseph Mieras')
+
+$filepath = 'C:\Powershell\wAnywhere\'
+
+#File path for Workday export
+$WorkdayFile = 'C:\Powershell\wAnywhere\wd.csv'
+if (-not (Test-Path $WorkdayFile)) {
+    $LogMessages += 'Workday export file not found at ' + $WorkdayFile
+    $LogMessages | Out-File ($filepath + 'wAnywhere_access_discrepancy_Log.txt')
+    $LogMessages | Out-File ($filepath + 'Archive\' + (Get-Date -Format "yyyyMMdd_HHmmss") + '_Log_wAnywhere_access_discrepancy.txt')
+    exit
+}
+
+$LogMessages += 'Reading Workday Export File'
+$WorkdayData = Import-Csv $WorkdayFile
+$LogMessages += -join('-> ', $WorkdayData.Count, ' total records found')
+
+#Get only the PH Employees
+$PHManilaEmployees = $WorkdayData | Where-Object {$_.location -eq 'PH Manila' -and $_.Worker_Type -eq 'Employee'}
+$LogMessages += -join($Q, '-> ', $PHManilaEmployees.Count, ' PH Employee found')
+$LogMessages += ""
+
+#Get all NON-EMP in AD with EA1 == Contractor or Temp User
+$LogMessages += '-> Reading AD for PH NON-EMP'
+$AllNonEmpUsers = @()
+$domains = @('ind', 'its', 'fss')
+
+foreach ($domain in $domains) {
+    try {
+        $domainUsers = Get-ADUser -Filter {(extensionAttribute1 -eq 'Contractor') -or (extensionAttribute1 -eq 'Temp User')} `
+            -Server $domain `
+            -Properties extensionAttribute1, extensionAttribute8, Manager, co, Country, DisplayName
+        $AllNonEmpUsers += $domainUsers
+    } catch {
+        $LogMessages += -join($Q, $Q, '-> Error query domain - ', $domain)
+    }
+}
+
+#Filter PH NON-EMP based on Country attribute
+$PHNonEmpUsers = $AllNonEmpUsers | Where-Object {$_.Country -eq 'PH'}
+
+#Build manager lookup hash table once*
+$ManagerCache = @{}
+$allManagerDNs = @($PHNonEmpUsers | Where-Object {$_.Manager} | Select-Object -ExpandProperty Manager -Unique)
+
+foreach ($mgrDN in $allManagerDNs) {
+    if (-not $ManagerCache.ContainsKey($mgrDN)) {
+        $managerDomain = Get-ADUserDomain $mgrDN
+        try {
+            $managerObj = Get-ADUser -Identity $mgrDN -Server $managerDomain -Properties DisplayName, SamAccountName, Country, co
+            $ManagerCache[$mgrDN] = $managerObj
+        } catch {
+            $ManagerCache[$mgrDN] = $null
+        }
+    }
+}
+
+#Helper function to convert manager display name
+function Convert-ManagerDisplayName {
+    param($DisplayName)
+    if ($DisplayName -match ',') {
+        $nameParts = $DisplayName -split ',\s*'
+        return "$($nameParts[1]) $($nameParts[0])"
+    }
+    return $DisplayName
+}
+
+#Categorize PH NON-EMP as EXL, NON-EXL, or NO MANAGER
+$EXLNonEmps = @()
+$NonEXLNonEmps = @()
+$NoManagerNonEmps = @()
+
+foreach ($nonEmp in $PHNonEmpUsers) {
+    if ($null -eq $nonEmp.Manager -or $nonEmp.Manager -eq '') {
+        $NoManagerNonEmps += $nonEmp
+    } else {
+        $managerObj = $ManagerCache[$nonEmp.Manager]
+        if ($null -eq $managerObj) {
+            $NoManagerNonEmps += $nonEmp
+        } else {
+            #$managerName = $managerObj.DisplayName
+			$managerName = Convert-ManagerDisplayName $managerObj.DisplayName
+            if ($managerName -in $EXLManagers) {
+                $EXLNonEmps += $nonEmp
+            } else {
+                $NonEXLNonEmps += $nonEmp
+            }
+        }
+    }
+}
+
+$LogMessages += -join($Q, '-> ', $PHNonEmpUsers.Count, ' PH NON-EMP found')
+$LogMessages += -join($Q, $Q, '-> EXL        ', $Q, ': ', $EXLNonEmps.Count)
+$LogMessages += -join($Q, $Q, '-> NON-EXL    ', $Q, ': ', $NonEXLNonEmps.Count)
+$LogMessages += -join($Q, $Q, '-> NO MANAGER ', $Q, ': ', $NoManagerNonEmps.Count)
+
+if ($NoManagerNonEmps.Count -gt 0) {
+    foreach ($noMgrUser in $NoManagerNonEmps) {
+        $country = if ($noMgrUser.Country) { $noMgrUser.Country } else { 'Null' }
+        $LogMessages += -join($Q, $Q, $Q, '-> Id: ', $noMgrUser.SamAccountName, $Q, '| Manager: Null', $Q, ' | Country: ', $country)
+    }
+}
+
+$LogMessages += ""
+$LogMessages += '---------------------------------------------------------------------------------------'
+
+#Get group members once and build hash tables*
+$LogMessages += 'Reading SG_SSO_wAnywhere_Users group'
+$wAnywhereUsers = Get-ADGroupMember 'SG_SSO_wAnywhere_Users'
+$LogMessages += -join($Q, '-> ', $wAnywhereUsers.Count, ' users in group')
+
+#Build hash table for quick lookups
+$wAnywhereUserNames = @{}
+foreach ($u in $wAnywhereUsers) { $wAnywhereUserNames[$u.SamAccountName] = $true }
+
+#Batch AD user queries by domain*
+$usersByDomain = $wAnywhereUsers | Group-Object {Get-ADUserDomain $_.distinguishedName}
+$PHEmployeeUsersInGroup = @()
+$PHNonEmpUsersInGroup = @()
+$NonPHEmployeeUsersInGroup = @()
+$NonPHNonEmpUsersInGroup = @()
+$NullEA1Count = 0
+$NullEA1Users = @()
+
+foreach ($domainGroup in $usersByDomain) {
+    $domain = $domainGroup.Name
+    $samAccountNames = $domainGroup.Group.SamAccountName
+    
+        # Fallback to individual queries if batch fails
+        foreach ($samName in $samAccountNames) {
+            try {
+                $adUser = Get-ADUser -Identity $samName -Server $domain `
+                    -Properties extensionAttribute1, extensionAttribute8, Country, co, Manager
+                
+                # Safe handling of null extensionAttribute1
+                $ea1 = if ($null -ne $adUser.extensionAttribute1 -and $adUser.extensionAttribute1 -ne '') {
+                    $adUser.extensionAttribute1.ToString().Trim()
+                } else {
+                    $null
+                }
+				
+				$country = $null
+				if ($adUser.Country) { $country = $adUser.Country.ToString().Trim() }
+
+                if (($ea1 -eq 'Employee') -and ($country -eq 'PH')) {
+                    $PHEmployeeUsersInGroup += $adUser
+                } elseif (($ea1 -eq 'Employee') -and ($country -ne 'PH')) {
+                    $NonPHEmployeeUsersInGroup += $adUser
+                } elseif (($ea1 -in @('Contractor', 'Temp User')) -and ($country -eq 'PH')) {
+                    $PHNonEmpUsersInGroup += $adUser
+                } elseif (($ea1 -in @('Contractor', 'Temp User')) -and ($country -ne 'PH')) {
+                    $NonPHNonEmpUsersInGroup += $adUser
+                } elseif ($null -eq $ea1) {
+                    $NullEA1Count++
+                    $NullEA1Users += $adUser.SamAccountName
+                }
+            } catch {}
+        }
+}
+
+#Combine PH and Non-PH users
+$EmployeeUsersInGroup = $PHEmployeeUsersInGroup + $NonPHEmployeeUsersInGroup
+$NonEmpUsersInGroup = $PHNonEmpUsersInGroup + $NonPHNonEmpUsersInGroup
+
+$PHEmployeeCount = $PHEmployeeUsersInGroup.Count
+$PHNonEmpCount = $PHNonEmpUsersInGroup.Count
+$NonPHEmployeeCount = $NonPHEmployeeUsersInGroup.Count
+$NonPHNonEmpCount = $NonPHNonEmpUsersInGroup.Count
+
+
+$LogMessages += -join($Q, $Q, '-> ', $PHEmployeeCount, ' PH Employee present')
+
+if ($NonPHEmployeeCount -gt 0) {
+    $LogMessages += -join($Q, $Q, '-> ', $NonPHEmployeeCount, '   NON-PH Employee present')
+}
+#$LogMessages += -join($Q, $Q, '-> ', $NonPHEmployeeCount, '   NON-PH Employee present')
+
+#Log users with null EA1
+if ($NullEA1Count -gt 0) {
+    foreach ($nullUser in $NullEA1Users) {
+        $LogMessages += -join($Q, $Q, '-> Id: ', $nullUser, ' | EA1: Null')
+    }
+    $LogMessages += -join($Q, $Q, '-> ', $NullEA1Count)
+}
+
+
+
+#Check for Employees in Users group but not in WD file
+$LogMessages += -join($Q, $Q, $Q, '-> Checking for PH Employee present in group and missing in WD File')
+$NotInWDCount = 0
+
+#Build hash table for WD usernames*
+$WDUserNamesHash = @{}
+foreach ($emp in $PHManilaEmployees) { $WDUserNamesHash[$emp.User_Name] = $true }
+
+foreach ($empUser in $EmployeeUsersInGroup) {
+    if (-not $WDUserNamesHash.ContainsKey($empUser.SamAccountName)) {
+        $ea8 = $empUser.extensionAttribute8
+        $country = if ($empUser.Country) { $empUser.Country } elseif ($empUser.co) { $empUser.co } else { 'Unknown' }
+        
+        if ($null -eq $ea8 -or $ea8 -eq '') {
+            $LogMessages += -join($Q, $Q, $Q, $Q, '-> Id: ', $empUser.SamAccountName, $Q, '| EA8: Null       ', '| Country: ', $country)
+        } elseif ($ea8 -eq 'NotInWD') {
+            $LogMessages += -join($Q, $Q, $Q, $Q, '-> Id: ', $empUser.SamAccountName, $Q, '| EA8: NotInWD    ', '| Country: ', $country)
+        } else {
+            $LogMessages += -join($Q, $Q, $Q, $Q, '-> Id: ', $empUser.SamAccountName, $Q, '| EA8: Populated  ', '| Country: ', $country)
+        }
+        $NotInWDCount++
+    }
+}
+
+$LogMessages += -join($Q, $Q, $Q, $Q, '-> ', $NotInWDCount)
+$LogMessages += ""
+
+#List PH NON-EMP in group
+$LogMessages += -join($Q, $Q, '-> ', $PHNonEmpCount, ' PH NON-EMP present')
+if ($NonPHNonEmpCount -gt 0) {
+    $LogMessages += -join($Q, $Q, '-> ', $NonPHNonEmpCount, '  NON-PH NON-EMP present')
+}
+#$LogMessages += -join($Q, $Q, '-> ', $NonPHNonEmpCount, '  NON-PH NON-EMP present')
+
+foreach ($nonEmp in $NonEmpUsersInGroup) {
+    $country = if ($nonEmp.Country) { $nonEmp.Country } else { 'Null' }
+    $managerName = 'Null'
+    
+    if ($nonEmp.Manager -and $ManagerCache.ContainsKey($nonEmp.Manager)) {
+        $managerObj = $ManagerCache[$nonEmp.Manager]
+        if ($managerObj) {
+            $managerName = Convert-ManagerDisplayName $managerObj.DisplayName
+        } else {
+            $managerName = 'Error'
+        }
+    } elseif ($nonEmp.Manager) {
+        # Manager not in cache, fetch it
+        try {
+            $managerDomain = Get-ADUserDomain $nonEmp.Manager
+            $managerObj = Get-ADUser -Identity $nonEmp.Manager -Server $managerDomain -Properties DisplayName
+            $managerName = Convert-ManagerDisplayName $managerObj.DisplayName
+        } catch {
+            $managerName = 'Error'
+        }
+    }
+    
+    $LogMessages += -join($Q, $Q, $Q, '-> Id: ', $nonEmp.SamAccountName, $Q, '| Country: ', $country, $Q, '| Manager: ', $managerName, $Q)
+}
+$LogMessages += -join($Q, $Q, $Q, '-> ', $PHNonEmpCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+
+
+$LogMessages += '-> Checking for'
+
+#Discrepancy Check 1: PH Manila Employees not in wAnywhere Users group
+$LogMessages += -join($Q, '-> PH Employee missing from the SG_SSO_wAnywhere_Users group')
+$MissingCount = 0
+foreach ($Employee in $PHManilaEmployees) {
+    if (-not $wAnywhereUserNames.ContainsKey($Employee.User_Name)) {
+        $DiscrepancyLine = 'User not in wAnywhere Users Group,' + $Employee.isManager + ',' + $Employee.User_Name + ',' + $Employee.primaryWorkEmail + ',' + $Employee.location + ',' + $Employee.Worker_s_Manager
+        $Discrepancies += $DiscrepancyLine
+        $MissingCount++
+        $LogMessages += -join($Q, $Q, '-> Id: ', $Employee.User_Name, $Q, '| Manager: ', $Employee.Worker_s_Manager)
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $MissingCount)
+$LogMessages += ""
+
+# Check for NON-EXL PH NON-EMP not in wAnywhere Users group
+$LogMessages += -join($Q, '-> PH NON-EMP missing from the SG_SSO_wAnywhere_Users group')
+$MissingNonEXLCount = 0
+
+foreach ($nonEmp in $NonEXLNonEmps) {
+    if (-not $wAnywhereUserNames.ContainsKey($nonEmp.SamAccountName)) {
+        $managerName = 'Null'
+        
+        if ($nonEmp.Manager -and $ManagerCache.ContainsKey($nonEmp.Manager)) {
+            $managerObj = $ManagerCache[$nonEmp.Manager]
+            if ($managerObj) {
+                $managerName = Convert-ManagerDisplayName $managerObj.DisplayName
+            } else {
+                $managerName = 'Error'
+            }
+        }
+        
+        $DiscrepancyLine = 'PH NON-EMP (NON-EXL) not in Users Group,0,' + $nonEmp.SamAccountName + ',,PH,' + $managerName
+        $Discrepancies += $DiscrepancyLine
+        $MissingNonEXLCount++
+        $LogMessages += -join($Q, $Q, '-> Id: ', $nonEmp.SamAccountName, $Q, '| Manager: ', $managerName)
+    }
+}
+$LogMessages += -join($Q, $Q, '-> ', $MissingNonEXLCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+
+
+
+
+#Get Managers group*
+$LogMessages += 'Reading SG_SSO_wAnywhere-Managers group'
+$wAnywhereManagers = Get-ADGroupMember 'SG_SSO_wAnywhere-Managers'
+$LogMessages += -join($Q, '-> ', $wAnywhereManagers.Count, ' managers in group')
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+#Build hash tables for managers
+$wAnywhereManagerDNs = @{}
+$wAnywhereManagerNames = @{}
+foreach ($mgr in $wAnywhereManagers) {
+    $wAnywhereManagerDNs[$mgr.distinguishedName] = $true
+    $wAnywhereManagerNames[$mgr.SamAccountName] = $true
+}
+
+
+
+
+
+#Discrepancy Check 2: Managers in wAnywhere-Managers group whose location is not PH Manila
+$LogMessages += 'Checking for Non-PH Manager present in the SG_SSO_wAnywhere-Managers group'
+$NonPHManagerCount = 0
+
+#Build hash table for Workday records by User_Name*
+$WorkdayByUserName = @{}
+foreach ($wd in $WorkdayData) {
+    $WorkdayByUserName[$wd.User_Name] = $wd
+}
+
+foreach ($Manager in $wAnywhereManagers) {
+    $WorkdayRecord = $WorkdayByUserName[$Manager.SamAccountName]
+    
+    if ($WorkdayRecord -and $WorkdayRecord.location -ne 'PH Manila') {
+        $DiscrepancyLine = 'Manager location not PH Manila,' + $WorkdayRecord.isManager + ',' + $WorkdayRecord.User_Name + ',' + $WorkdayRecord.primaryWorkEmail + ',' + $WorkdayRecord.location + ',' + $WorkdayRecord.Worker_s_Manager
+        $Discrepancies += $DiscrepancyLine
+        $NonPHManagerCount++
+        $LogMessages += -join($Q, '-> Id: ', $WorkdayRecord.User_Name, $Q, '| Location: ', $WorkdayRecord.location, ' |')
+    }
+}
+$LogMessages += -join($Q, '-> ', $NonPHManagerCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+
+
+
+
+#Discrepancy Check 3: PH Managers with ALL PH direct reports not in wAnywhere-Managers group
+#checking for both PH Employee and PH NON-EMP
+$LogMessages += 'Checking for PH Manager who have all PH Direct Reports and missing from the SG_SSO_wAnywhere-Managers group'
+$MissingManagerCount = 0
+
+$PHManilaManagers = $PHManilaEmployees | Where-Object {$_.isManager -eq '1'} | Select-Object -Unique User_Name, primaryWorkEmail, location, Worker_s_Manager, isManager, Worker
+
+#Build lookup for direct reports*
+$DirectReportsByManager = @{}
+foreach ($emp in $WorkdayData | Where-Object {$_.Worker_Type -eq 'Employee'}) {
+    if ($emp.Worker_s_Manager) {
+        if (-not $DirectReportsByManager.ContainsKey($emp.Worker_s_Manager)) {
+            $DirectReportsByManager[$emp.Worker_s_Manager] = @()
+        }
+        $DirectReportsByManager[$emp.Worker_s_Manager] += $emp
+    }
+}
+
+# Build NON-EMP direct reports lookup
+$NonEmpDirectReportsByManager = @{}
+foreach ($nonEmp in $PHNonEmpUsers) {
+    if ($nonEmp.Manager -and $ManagerCache.ContainsKey($nonEmp.Manager)) {
+        $managerObj = $ManagerCache[$nonEmp.Manager]
+        if ($managerObj) {
+            $mgrSam = $managerObj.SamAccountName
+            if (-not $NonEmpDirectReportsByManager.ContainsKey($mgrSam)) {
+                $NonEmpDirectReportsByManager[$mgrSam] = @()
+            }
+            $NonEmpDirectReportsByManager[$mgrSam] += $nonEmp
+        }
+    }
+}
+
+foreach ($Manager in $PHManilaManagers) {
+    $AllDirectReportsEmp = @()
+    if ($DirectReportsByManager.ContainsKey($Manager.Worker)) {
+        $AllDirectReportsEmp = $DirectReportsByManager[$Manager.Worker]
+    }
+    
+    $AllDirectReportsNonEmp = @()
+    if ($NonEmpDirectReportsByManager.ContainsKey($Manager.User_Name)) {
+        $AllDirectReportsNonEmp = $NonEmpDirectReportsByManager[$Manager.User_Name]
+    }
+    
+    $totalReports = $AllDirectReportsEmp.Count + $AllDirectReportsNonEmp.Count
+    $NonPHReportsEmp = $AllDirectReportsEmp | Where-Object {$_.location -ne 'PH Manila'}
+
+    # Condition: no direct reports at all, OR all reports are PH
+    $allReportsPH = ($totalReports -eq 0) -or 
+                    ($NonPHReportsEmp.Count -eq 0 -and ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0))
+
+    if ($allReportsPH) {
+        if (-not $wAnywhereManagerNames.ContainsKey($Manager.User_Name)) {
+            $DiscrepancyLine = 'Manager with all PH reports not in Managers group,' + $Manager.isManager + ',' + $Manager.User_Name + ',' + $Manager.primaryWorkEmail + ',' + $Manager.location + ',' + $Manager.Worker_s_Manager
+            $Discrepancies += $DiscrepancyLine
+            $MissingManagerCount++
+            $LogMessages += -join($Q, '-> Id: ', $Manager.User_Name, $Q, '| DRs: ', $AllDirectReportsEmp.Count, ' PH Employee, ', $AllDirectReportsNonEmp.Count, ' PH NON-EMP')
+        }
+    }
+}
+
+$LogMessages += -join($Q, '-> ', $MissingManagerCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+
+
+
+#Get Monitored group*
+$LogMessages += 'Reading SG_SSO_wAnywhere_Monitored group'
+$wAnywhereMonitored = Get-ADGroupMember 'SG_SSO_wAnywhere_Monitored'
+$LogMessages += -join($Q, '-> ', $wAnywhereMonitored.Count, ' users in monitored group')
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+$wAnywhereMonitoredNames = @{}
+foreach ($mon in $wAnywhereMonitored) { $wAnywhereMonitoredNames[$mon.SamAccountName] = $true }
+
+
+
+
+#Discrepancy Check 4: Employees/NON-EMPs/Managers not in wAnywhere_Monitored group
+$LogMessages += 'Checking for'
+
+# PH Employees not in Monitored
+$LogMessages += -join($Q, '-> PH Employee reporting to NON-PH Manager and missing from the SG_SSO_wAnywhere_Monitored group')
+$MissingMonitoredEmployeeCount = 0
+
+#Build manager lookup by Worker ID*
+$ManagerByWorker = @{}
+foreach ($wd in $WorkdayData | Where-Object {$_.Worker_Type -eq 'Employee'}) {
+    $ManagerByWorker[$wd.Worker] = $wd
+}
+
+foreach ($Employee in $PHManilaEmployees) {
+    $shouldBeMonitored = $false
+    $reason = ''
+    
+    $EmployeeManager = $ManagerByWorker[$Employee.Worker_s_Manager]
+    
+    if ($EmployeeManager -and $EmployeeManager.location -ne 'PH Manila') {
+        $shouldBeMonitored = $true
+        $reason = 'Manager: ' + $Employee.Worker_s_Manager + $Q + '| Manager_Location: ' + $EmployeeManager.location
+    }
+    
+    if ($shouldBeMonitored -and (-not $wAnywhereMonitoredNames.ContainsKey($Employee.User_Name))) {
+        $DiscrepancyLine = 'PH Employee not in Monitored group,' + $Employee.isManager + ',' + $Employee.User_Name + ',' + $Employee.primaryWorkEmail + ',' + $Employee.location + ',' + $Employee.Worker_s_Manager
+        $Discrepancies += $DiscrepancyLine
+        $MissingMonitoredEmployeeCount++
+        $LogMessages += -join($Q, $Q, '-> Id: ', $Employee.User_Name, $Q, '| ', $reason)
+    }
+}
+$LogMessages += -join($Q, $Q, '-> ', $MissingMonitoredEmployeeCount)
+$LogMessages += ""
+
+# PH NON-EMPs not in Monitored
+$EXLNonEmpNames = @{}
+foreach ($exl in $EXLNonEmps) { $EXLNonEmpNames[$exl.SamAccountName] = $true }
+
+$LogMessages += -join($Q, '-> PH NON-EMP reporting to NON-PH Manager and missing from the SG_SSO_wAnywhere_Monitored group')
+$MissingMonitoredNonEmpCount = 0
+
+foreach ($nonEmp in $PHNonEmpUsers) {
+    if ($EXLNonEmpNames.ContainsKey($nonEmp.SamAccountName)) {
+        continue
+    }
+
+    $shouldBeMonitored = $false
+    $managerLocation = ''
+    $managerName = 'Null'
+
+    if ($nonEmp.Manager -and $ManagerCache.ContainsKey($nonEmp.Manager)) {
+        $managerObj = $ManagerCache[$nonEmp.Manager]
+        if ($managerObj) {
+            $managerName = Convert-ManagerDisplayName $managerObj.DisplayName
+            $managerLocation = if ($managerObj.Country) { $managerObj.Country } else { 'Unknown' }
+            if ($managerLocation -ne 'PH') { $shouldBeMonitored = $true }
+        }
+    }
+
+    if ($shouldBeMonitored -and (-not $wAnywhereMonitoredNames.ContainsKey($nonEmp.SamAccountName))) {
+        $DiscrepancyLine = 'PH NON-EMP not in Monitored group,0,' + $nonEmp.SamAccountName + ',,PH,' + $managerName
+        $Discrepancies += $DiscrepancyLine
+        $MissingMonitoredNonEmpCount++
+        $LogMessages += -join($Q, $Q, '-> Id: ', $nonEmp.SamAccountName, $Q, '| Manager: ', $managerName, $Q, '| Manager_Location: ', $managerLocation)
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $MissingMonitoredNonEmpCount)
+$LogMessages += ""
+
+
+
+# Managers with mixed DRs not in Monitored
+$LogMessages += -join($Q, '-> PH direct reports under Manager who have mixed direct reports (PH and Non-PH) and are missing from the SG_SSO_wAnywhere_Monitored group')
+$MissingMonitoredMixedManagerCount = 0
+$AllManagers = $WorkdayData | Where-Object {$_.isManager -eq '1' -and $_.Worker_Type -eq 'Employee'} | Select-Object -Unique User_Name, location, Worker
+
+# Build ALL NON-EMP direct reports lookup (not just PH)
+$AllNonEmpDirectReportsByManager = @{}
+foreach ($nonEmp in $AllNonEmpUsers) {
+    if ($EXLNonEmpNames.ContainsKey($nonEmp.SamAccountName)) {
+        continue
+    }
+
+    if ($nonEmp.Manager) {
+        $managerObj = $ManagerCache[$nonEmp.Manager]
+        if ($managerObj) {
+            $mgrSam = $managerObj.SamAccountName
+            if (-not $AllNonEmpDirectReportsByManager.ContainsKey($mgrSam)) {
+                $AllNonEmpDirectReportsByManager[$mgrSam] = @()
+            }
+            $AllNonEmpDirectReportsByManager[$mgrSam] += $nonEmp
+        }
+    }
+}
+
+foreach ($Manager in $AllManagers) {
+    $AllDirectReportsEmp = @()
+    if ($DirectReportsByManager.ContainsKey($Manager.Worker)) {
+        $AllDirectReportsEmp = $DirectReportsByManager[$Manager.Worker]
+    }
+
+    $AllDirectReportsNonEmp = @()
+    if ($AllNonEmpDirectReportsByManager.ContainsKey($Manager.User_Name)) {
+        $AllDirectReportsNonEmp = $AllNonEmpDirectReportsByManager[$Manager.User_Name]
+    }
+
+    if ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0) {
+        $empLocationGroups   = $AllDirectReportsEmp   | Group-Object location
+        $nonEmpLocationGroups = $AllDirectReportsNonEmp | Group-Object { if ($_.Country) { $_.Country } else { 'Unknown' } }
+
+        $hasPHReports    = ($empLocationGroups    | Where-Object { $_.Name -eq 'PH Manila' }).Count -gt 0 -or
+                           ($nonEmpLocationGroups  | Where-Object { $_.Name -eq 'PH' -or $_.Name -eq 'Philippines' }).Count -gt 0
+        $hasNonPHReports = ($empLocationGroups    | Where-Object { $_.Name -ne 'PH Manila' }).Count -gt 0 -or
+                           ($nonEmpLocationGroups  | Where-Object { $_.Name -ne 'PH' -and $_.Name -ne 'Philippines' }).Count -gt 0
+
+        if ($hasPHReports -and $hasNonPHReports) {
+            # Check PH Employee DRs of this manager
+            $PHEmpDRs = $AllDirectReportsEmp | Where-Object { $_.location -eq 'PH Manila' }
+            foreach ($phEmpDR in $PHEmpDRs) {
+                if (-not $wAnywhereMonitoredNames.ContainsKey($phEmpDR.User_Name)) {
+                    $DiscrepancyLine = 'PH Employee DR of Manager with mixed DRs not in Monitored group,' + $phEmpDR.isManager + ',' + $phEmpDR.User_Name + ',' + $phEmpDR.primaryWorkEmail + ',' + $phEmpDR.location + ',' + $Manager.User_Name
+                    $Discrepancies += $DiscrepancyLine
+                    $MissingMonitoredMixedManagerCount++
+                    $LogMessages += -join($Q, $Q, '-> Id: ', $phEmpDR.User_Name, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
+                }
+            }
+
+            # Check PH NON-EMP DRs of this manager
+            $PHNonEmpDRs = $AllDirectReportsNonEmp | Where-Object { $_.Country -eq 'PH' -or $_.Country -eq 'Philippines' }
+            foreach ($phNonEmpDR in $PHNonEmpDRs) {
+                if (-not $wAnywhereMonitoredNames.ContainsKey($phNonEmpDR.SamAccountName)) {
+                    $DiscrepancyLine = 'PH NON-EMP DR of Manager with mixed DRs not in Monitored group,0,' + $phNonEmpDR.SamAccountName + ',,PH,' + $Manager.User_Name
+                    $Discrepancies += $DiscrepancyLine
+                    $MissingMonitoredMixedManagerCount++
+                    $LogMessages += -join($Q, $Q, '-> Id: ', $phNonEmpDR.SamAccountName, $Q, '| Manager: ', $Manager.User_Name, $Q, '| Manager_Location: ', $Manager.location)
+                }
+            }
+        }
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $MissingMonitoredMixedManagerCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+
+# PH users in Monitored group whose manager is PH (to be removed)
+$LogMessages += -join($Q, '-> PH user in SG_SSO_wAnywhere_Monitored group reporting to PH Manager (to be removed)')
+$ShouldBeRemovedCount = 0
+
+foreach ($monUser in $wAnywhereMonitored) {
+    try {
+        $monDomain = Get-ADUserDomain $monUser.distinguishedName
+        $monADUser = Get-ADUser -Identity $monUser.SamAccountName -Server $monDomain `
+            -Properties extensionAttribute1, Country, co, Manager
+    } catch {
+        continue
+    }
+
+    # Normalize EA1
+    $ea1 = if ($null -ne $monADUser.extensionAttribute1 -and $monADUser.extensionAttribute1 -ne '') {
+        $monADUser.extensionAttribute1.ToString().Trim()
+    } else { $null }
+
+    # Normalize Country
+    $userCountry = if ($monADUser.Country) { $monADUser.Country.ToString().Trim().ToUpper() } else { '' }
+
+    # Only process PH employees, contractors, or temp users
+    if ($ea1 -notin @('Employee', 'Contractor', 'Temp User') -or $userCountry -ne 'PH') {
+        continue
+    }
+
+    # Resolve manager — use cache first, fetch and store if missing
+    $mgrObj = $null
+    if ($monADUser.Manager) {
+        if ($ManagerCache.ContainsKey($monADUser.Manager)) {
+            $mgrObj = $ManagerCache[$monADUser.Manager]
+        } else {
+            try {
+                $mgrDomain = Get-ADUserDomain $monADUser.Manager
+                $mgrObj = Get-ADUser -Identity $monADUser.Manager -Server $mgrDomain `
+                    -Properties DisplayName, SamAccountName, Country, co
+                $ManagerCache[$monADUser.Manager] = $mgrObj
+            } catch {
+                $ManagerCache[$monADUser.Manager] = $null
+            }
+        }
+    }
+
+    if ($null -eq $mgrObj) { continue }
+
+    # Normalize manager country fields
+    $mgrCountry = if ($mgrObj.Country) { $mgrObj.Country.ToString().Trim().ToUpper() } else { '' }
+    $mgrCo      = if ($mgrObj.co)      { $mgrObj.co.ToString().Trim().ToLower() }      else { '' }
+
+    # Check if manager is PH
+    if ($mgrCountry -eq 'PH' -or $mgrCo -eq 'philippines') {
+
+        # Get isManager and email from Workday if available
+        $wdRecord  = $WorkdayByUserName[$monUser.SamAccountName]
+        $isManager = if ($wdRecord) { $wdRecord.isManager }          else { '0' }
+        $userEmail = if ($wdRecord) { $wdRecord.primaryWorkEmail }    else { '' }
+
+        $DiscrepancyLine = 'PH user in Monitored group with PH Manager (to be removed),' + $isManager + ',' + $monUser.SamAccountName + ',' + $userEmail + ',PH,' + $mgrObj.SamAccountName
+        $Discrepancies += $DiscrepancyLine
+        $ShouldBeRemovedCount++
+        $LogMessages += -join($Q, $Q, '-> Id: ', $monUser.SamAccountName, `
+            $Q, '| Manager: ', $mgrObj.SamAccountName, `
+            $Q, '| Manager_Country: ', $mgrCountry)
+    }
+}
+
+$LogMessages += -join($Q, $Q, '-> ', $ShouldBeRemovedCount)
+$LogMessages += '---------------------------------------------------------------------------------------'
+$LogMessages += ""
+
+
+#output files
+#$currdate = Get-Date -Format "yyyyMMdd_HHmmss"
+$currdate = Get-Date -Format Filedate
+#$filepath = 'C:\Powershell\wAnywhere\'
+
+#Report file
+$LogMessages += 'Writing Report'
+$Discrepancies | Out-File ($filepath + 'wAnywhere_access_discrepancy_Report.csv') -Encoding utf8
+$Discrepancies | Out-File ($filepath + 'Archive\' + $currdate + '_Report_wAnywhere_access_discrepancy.csv') -Encoding utf8
+
+#Move Workday file to archive
+$LogMessages += 'Moving Workday file to archive'
+$archiveWorkdayFile = $filepath + 'Archive\' + $currdate + '_wd.csv'
+Move-Item -Path $WorkdayFile -Destination $archiveWorkdayFile -Force
+
+#log file
+$LogMessages | Out-File ($filepath + 'wAnywhere_access_discrepancy_Log.txt')
+$LogMessages | Out-File ($filepath + 'Archive\' + $currdate + '_Log_wAnywhere_access_discrepancy.txt')
+
+Write-Host "Done"
