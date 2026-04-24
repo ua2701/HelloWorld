@@ -2210,17 +2210,18 @@ foreach ($Manager in $PHManilaManagers) {
     
     $totalReports = $AllDirectReportsEmp.Count + $AllDirectReportsNonEmp.Count
     $NonPHReportsEmp = $AllDirectReportsEmp | Where-Object {$_.location -ne 'PH Manila'}
+    $PHReportsEmp = $AllDirectReportsEmp | Where-Object {$_.location -eq 'PH Manila'}
+    $PHReportsNonEmp = $AllDirectReportsNonEmp
 
-    # Condition: no direct reports at all, OR all reports are PH
-    $allReportsPH = ($totalReports -eq 0) -or 
-                    ($NonPHReportsEmp.Count -eq 0 -and ($AllDirectReportsEmp.Count -gt 0 -or $AllDirectReportsNonEmp.Count -gt 0))
+    # Include manager if: zero DRs, OR all DRs are PH (no non-PH Employee DRs)
+    $qualifies = ($totalReports -eq 0) -or ($NonPHReportsEmp.Count -eq 0)
 
-    if ($allReportsPH) {
+    if ($qualifies) {
         if (-not $wAnywhereManagerNames.ContainsKey($Manager.User_Name)) {
             $DiscrepancyLine = 'Manager with all PH reports not in Managers group,' + $Manager.isManager + ',' + $Manager.User_Name + ',' + $Manager.primaryWorkEmail + ',' + $Manager.location + ',' + $Manager.Worker_s_Manager
             $Discrepancies += $DiscrepancyLine
             $MissingManagerCount++
-            $LogMessages += -join($Q, '-> Id: ', $Manager.User_Name, $Q, '| DRs: ', $AllDirectReportsEmp.Count, ' PH Employee, ', $AllDirectReportsNonEmp.Count, ' PH NON-EMP')
+            $LogMessages += -join($Q, '-> Id: ', $Manager.User_Name, $Q, '| DRs: ', $PHReportsEmp.Count, ' PH Employee, ', $PHReportsNonEmp.Count, ' PH NON-EMP')
         }
     }
 }
