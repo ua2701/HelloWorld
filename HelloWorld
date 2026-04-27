@@ -2944,3 +2944,10 @@ $LogMessages | Out-File ($filepath + 'wAnywhere_access_discrepancy_Log.txt')
 $LogMessages | Out-File ($filepath + 'Archive\' + $currdate + '_Log_wAnywhere_access_discrepancy.txt')
 
 Write-Host "Done"
+
+
+
+
+I disabled the breach around 6:00 AM MST. Users who logged in before that time may still have the old configuration (breach enabled), as wAnywhere had not yet applied the update. For users who logged in after the change, the breach is disabled as expected.
+
+Those who logged in earlier will need to log out and start a new session for the updated settings to take effect. I expect everything to be in sync by tomorrow.
