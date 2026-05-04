@@ -3311,3 +3311,356 @@ Always provide in this order:
 - When a user appears in multiple discrepancy types across sheets,
   call them out as a cross-sheet risk in a dedicated section
 - Never assume a blank field means no data — check carry-forward rules first
+
+
+
+
+
+1 | Category: Role | Type: Correct | Topic: Role Request - Application1_DEV
+
+--- Turn 1 ---
+User Query:
+  I am looking for access to an application.
+
+Chatbot Response:
+  Sure! Which application are you looking for?
+
+--- Turn 2 ---
+User Query:
+  Application1.
+
+Chatbot Response:
+  Got it. Are you looking for a Role or an Entitlement?
+
+--- Turn 3 ---
+User Query:
+  A Role.
+
+Chatbot Response:
+  Here are the roles available for Application1:
+    • Application1_DEV
+    • Application1_QA
+    • Application1_PROD
+  Which one would you like to request?
+
+--- Turn 4 ---
+User Query:
+  Application1_DEV.
+
+Chatbot Response:
+  Great! Here are the steps to request Application1_DEV:
+    1. Go to "Request New Access"
+    2. Select "Role" from the filters
+    3. Search for "Application1_DEV"
+    4. Add it to the cart and click "Next Step"
+    5. Review account details and click "Proceed to Checkout"
+    6. Enter your business justification
+    7. Click "Submit"
+  Your Manager will approve this request.
+
+
+2 | Category: Entitlement | Type: Correct | Topic: Entitlement Request - Existing User (Application1_DEV_APIAccess)
+
+--- Turn 1 ---
+User Query:
+  I need access to Application1.
+
+Chatbot Response:
+  Sure! Are you looking for a Role or an Entitlement?
+
+--- Turn 2 ---
+User Query:
+  An Entitlement.
+
+Chatbot Response:
+  Here are the entitlements available for Application1:
+    • Application1_DEV_FullStackAccess
+    • Application1_DEV_APIAccess
+    • Application1_QA_FullStackAccess
+    • Application1_QA_EnvironmentReset
+    • Application1_PROD_UserMgmtAccess
+    • Application1_PROD_GroupMgmtAccess
+    • Application1_PROD_ApplicationMgmtAccess
+    • Application1_PROD_CaseAdminAccess
+    • Application1_PROD_FullStackAccess
+  Which one would you like to request?
+
+--- Turn 3 ---
+User Query:
+  Application1_DEV_APIAccess.
+
+Chatbot Response:
+  Do you already have access to Application1?
+
+--- Turn 4 ---
+User Query:
+  Yes, I do.
+
+Chatbot Response:
+  Great! Here are the steps to request Application1_DEV_APIAccess:
+    1. Go to "Request New Access"
+    2. Select "Entitlement" from the filters
+    3. Search for "Application1_DEV_APIAccess"
+    4. Add it to the cart and click "Next Step"
+    5. Review account details and click "Proceed to Checkout"
+    6. Enter your business justification
+    7. Click "Submit"
+  Your Manager will approve this request.
+
+
+3 | Category: Entitlement | Type: Correct | Topic: Entitlement Request - First-Time User (Application1_PROD_CaseAdminAccess)
+
+--- Turn 1 ---
+User Query:
+  I need Application1_PROD_CaseAdminAccess.
+
+Chatbot Response:
+  Do you already have access to Application1?
+
+--- Turn 2 ---
+User Query:
+  No, I don't.
+
+Chatbot Response:
+  No problem! Here are the steps to request Application1_PROD_CaseAdminAccess:
+    1. Go to "Request New Access"
+    2. Select "Entitlement" from the filters
+    3. Search for "Application1_PROD_CaseAdminAccess"
+    4. Add it to the cart and click "Next Step"
+    5. Review account details and click "Proceed to Checkout"
+    6. The system will add Application1 + the entitlement to your cart
+    7. Fill in the application form and click "Save"
+    8. Enter your business justification
+    9. Click "Submit"
+  This needs Manager (L1) and L2 approval.
+
+4 | Category: Role | Type: Correct | Topic: Role Request - Environment & Stage Selection (Application1)
+
+--- Turn 1 ---
+User Query:
+  I need to request for role for Application1
+
+Chatbot Response:
+  Got it. Which environment do you need access to?
+	• Production
+	• Non-production
+
+--- Turn 2 ---
+User Query:
+  Production
+
+Chatbot Response:
+  Here are the available Production roles for Application1:
+	• Application1_PROD_READ
+	• Application1_PROD_WRITE
+
+--- Turn 3 ---
+User Query:
+  Sorry, I need access for Non-production.
+
+Chatbot Response:
+  No problem. Which stage do you need access to?
+	• DEV
+	• QA
+	• UAT
+
+--- Turn 4 ---
+User Query:
+  QA
+
+Chatbot Response:
+  Here are the available QA roles for Application1:
+	• Application1_QA1
+	• Application1_QA2
+	• Application1_QA3
+
+--- Turn 2 ---
+User Query:
+  Application1_QA1
+
+Chatbot Response:
+  Here are the steps to request Application1_QA1:
+    1. Go to "Request New Access"
+    2. Select "Role" from the filters
+    3. Search for "Application1_QA"
+    4. Add it to the cart and click "Next Step"
+    5. Review account details and click "Proceed to Checkout"
+    6. Enter your business justification
+    7. Click "Submit"
+  Your Manager will approve this request.
+
+
+FLOW 5 | Category: Entitlement | Type: Corrective | Topic: Over-Provisioning - Role Redirected to Specific Entitlement
+
+--- Turn 1 ---
+User Query:
+  I only need API access in Application1 dev.
+
+Chatbot Response:
+  Got it. Based on your requirement, the appropriate entitlement is:
+	• Application1_DEV_APIAcces
+  Do you already have access to Application1?
+
+--- Turn 2 ---
+User Query:
+  Yes.
+
+Chatbot Response:
+  Here are the steps to request Application1_DEV_APIAccess:
+    1. Go to "Request New Access"
+    2. Select "Entitlement" from the filters
+    3. Search for "Application1_DEV_APIAccess"
+    4. Add it to the cart and click "Next Step"
+    5. Review account details and click "Proceed to Checkout"
+    6. Enter your business justification
+    7. Click "Submit"
+  Your Manager will approve this request.
+
+
+6 | Category: Role | Type: Informative | Topic: What Roles Exist for Application1?
+
+--- Turn 1 ---
+User Query:
+  What roles are available for Application1?
+
+Chatbot Response:
+  Here are the roles available for Application1:
+    • Application1_DEV  — for developers (Non-Prod)
+    • Application1_QA   — for QA engineers (Non-Prod)
+    • Application1_PROD — for production admins (Prod)
+  Would you like to request any of these?
+
+
+7 | Category: Role | Type: Informative | Topic: What Entitlements Are Included in the QA Role?
+
+--- Turn 1 ---
+User Query:
+  What does the Application1_QA role include?
+
+Chatbot Response:
+  Application1_QA includes:
+    • Application1_QA_FullStackAccess
+    • Application1_QA_EnvironmentReset
+  Would you like to request this role?
+  
+--- Turn 2 ---
+User Query:
+  Let me confirm with my team and get back to you
+
+Chatbot Response:
+  Sure, I’ll be here if you need any further help.
+
+
+8 | Category: Role | Type: Informative | Topic: Approval Chain for Application1_PROD Role - User
+
+--- Turn 1 ---
+User Query:
+  Who approves the Application1_PROD role?
+
+Chatbot Response:
+  Application1_PROD requires two approvals:
+    • Level-1: Your Manager
+    • Level-2: Application1_PROD_Approvers
+	
+--- Turn 2 ---
+User Query:
+  Who are the second level approvers?
+
+Chatbot Response:
+  Details of Level-2 approvers are not available to users.
+  Please contact your Manager if your request is pending or if escalation is required.
+  
+  
+9 | Category: Role | Type: Informative | Topic: Approval Chain for Application1_PROD Role - Manager
+
+--- Turn 1 ---
+User Query:
+  Who are the second level approvers for Application1_PROD?
+
+Chatbot Response:
+  The Level-2 approvers for Application1_PROD are:
+	• Application1_PROD_Approver-A
+	• Application1_PROD_Approver-B
+
+
+10 | Category: Entitlement | Type: Informative | Topic: Which Access Needs L3 Approval?
+
+--- Turn 1 ---
+User Query:
+  Is there any access in Application1 that needs L3 approval?
+
+Chatbot Response:
+  Yes - Application1_PROD_FullStackAccess requires L1, L2, and L3 approval.
+
+
+11 | Category: Both | Type: Informative | Topic: Difference Between Role and Entitlement
+
+--- Turn 1 ---
+User Query:
+  Should I request a role or an entitlement?
+
+Chatbot Response:
+  It depends on what you need:
+	• Role – a group of access provided together
+	• Entitlement – a single specific access
+
+
+12 | Category: Entitlement | Type: Informative | Topic: Risk Score of Application1_PROD_FullStackAccess
+
+--- Turn 1 ---
+User Query:
+  How risky is Application1_PROD_FullStackAccess?
+
+Chatbot Response:
+  It has a Risk Score of 10/10 - the highest level.
+  
+ --- Turn 2 ---
+User Query:
+  Got it. What approvals are required for it?
+  
+Chatbot Response:
+  It requires Manager, L2, and L3 approval before access is granted.
+
+
+13 | Category: Role | Type: Negative | Topic: PROD Role Blocked — Requested by Developer
+
+--- Turn 1 ---
+User Query:
+  I am a developer. I need Application1_PROD to push fixes to production.
+
+Chatbot Response:
+  Application1_PROD is a production role and is not available for developer activities.
+  Please contact your Manager to discuss the right level of access for your requirement.
+
+
+14 | Category: Entitlement | Type: Negative | Topic: PROD Entitlement Requested by Developer
+
+--- Turn 1 ---
+User Query:
+  I need access to the Application1 production database.
+
+Chatbot Response:
+  Application1_PROD_FullStackAccess is a critical production entitlement and is not permitted for developer roles due to SOD violation risk.
+  Please contact your Manager to discuss your requirement.
+
+15 | Category: Entitlement | Type: Negative | Topic: Non-Existent Entitlement — Application1_PROD_AuditAccess
+
+--- Turn 1 ---
+User Query:
+  I need Application1_PROD_AuditAccess.
+
+Chatbot Response:
+  Application1_PROD_AuditAccess does not exist in Application1.
+  Please contact your Manager to clarify the access you need.
+
+
+16 | Category: Application | Type: Negative | Topic: Non-Existent Application — Application99
+
+--- Turn 1 ---
+User Query:
+  I need access to Application99.
+
+Chatbot Response:
+  Application99 does not exist in the access catalog.
+  Please contact your Manager to clarify the application you need access to.
+
